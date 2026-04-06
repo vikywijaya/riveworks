@@ -1,37 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unlink } from 'fs/promises'
-import path from 'path'
-import { prisma } from '@/lib/prisma'
+import { adminDb, adminStorage } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const { id } = params
 
-  try {
-    const riveFile = await prisma.riveFile.findUnique({ where: { id } })
+  const docRef = adminDb.collection('rives').doc(id)
+  const doc = await docRef.get()
 
-    if (!riveFile) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 })
-    }
-
-    // Delete the file from disk (best-effort — don't fail if already gone)
-    try {
-      const filepath = path.join(process.cwd(), 'public', 'rives', riveFile.filename)
-      await unlink(filepath)
-    } catch (fsError) {
-      console.warn('Could not delete file from disk:', fsError)
-    }
-
-    // Delete the DB record
-    await prisma.riveFile.delete({ where: { id } })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error(`DELETE /api/rive/${id} error:`, error)
-    return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
+  if (!doc.exists) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
+
+  const data = doc.data()!
+
+  // Delete from Storage
+  try {
+    const bucket = adminStorage.bucket()
+    await bucket.file(`rives/${data.filename}`).delete()
+  } catch {
+    // File may not exist in storage, continue
+  }
+
+  // Delete from Firestore
+  await docRef.delete()
+
+  return NextResponse.json({ success: true })
 }

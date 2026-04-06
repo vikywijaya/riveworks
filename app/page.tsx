@@ -1,13 +1,22 @@
-import { prisma } from '@/lib/prisma'
+import { adminDb } from '@/lib/firebase-admin'
 import RiveCard from '@/components/RiveCard'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const riveFiles = await prisma.riveFile.findMany({
-    orderBy: { createdAt: 'desc' },
-  })
+  const snapshot = await adminDb
+    .collection('rives')
+    .orderBy('createdAt', 'desc')
+    .get()
+
+  const riveFiles = snapshot.docs.map(doc => ({
+    id: doc.id,
+    title: doc.data().title as string,
+    description: (doc.data().description ?? null) as string | null,
+    downloadUrl: doc.data().downloadUrl as string,
+    createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
+  }))
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -107,7 +116,7 @@ export default async function HomePage() {
                   key={file.id}
                   title={file.title}
                   description={file.description}
-                  filename={file.filename}
+                  downloadUrl={file.downloadUrl}
                 />
               ))}
             </div>

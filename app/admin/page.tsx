@@ -2,11 +2,14 @@
 
 import { useState, useEffect, FormEvent, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import { storage } from '@/lib/firebase'
 
 interface RiveFile {
   id: string
   title: string
   description: string | null
+  downloadUrl: string
   filename: string
   originalName: string
   createdAt: string
@@ -19,13 +22,14 @@ export default function AdminPage() {
   const [files, setFiles] = useState<RiveFile[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // Upload form state
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploadError, setUploadError] = useState('')
+  const [error, setError] = useState('')
   const [uploadSuccess, setUploadSuccess] = useState('')
 
   async function fetchFiles() {
@@ -51,41 +55,64 @@ export default function AdminPage() {
     if (!selectedFile || !title.trim()) return
 
     setUploading(true)
-    setUploadError('')
+    setError('')
     setUploadSuccess('')
+    setUploadProgress(0)
 
-    try {
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('title', title.trim())
-      formData.append('description', description.trim())
+    const filename = `${Date.now()}-${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    const storageRef = ref(storage, `rives/${filename}`)
+    const uploadTask = uploadBytesResumable(storageRef, selectedFile)
 
-      const res = await fetch('/api/rive', {
-        method: 'POST',
-        body: formData,
-      })
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        setUploadProgress(Math.round(progress))
+      },
+      (uploadError) => {
+        setError(uploadError.message)
+        setUploading(false)
+      },
+      async () => {
+        try {
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
 
-      if (res.ok) {
-        setUploadSuccess('Animation uploaded successfully!')
-        setTitle('')
-        setDescription('')
-        setSelectedFile(null)
-        if (fileInputRef.current) fileInputRef.current.value = ''
-        await fetchFiles()
-        setTimeout(() => setUploadSuccess(''), 3000)
-      } else {
-        const data = await res.json()
-        setUploadError(data.error || 'Upload failed')
+          const res = await fetch('/api/rive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: title.trim(),
+              description: description.trim() || null,
+              downloadUrl,
+              filename,
+              originalName: selectedFile.name,
+            }),
+          })
+
+          if (res.ok) {
+            setUploadSuccess('Animation uploaded successfully!')
+            setTitle('')
+            setDescription('')
+            setSelectedFile(null)
+            setUploadProgress(0)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+            await fetchFiles()
+            setTimeout(() => setUploadSuccess(''), 3000)
+          } else {
+            const data = await res.json()
+            setError(data.error || 'Failed to save animation metadata')
+          }
+        } catch {
+          setError('Something went wrong. Please try again.')
+        } finally {
+          setUploading(false)
+        }
       }
-    } catch {
-      setUploadError('Something went wrong. Please try again.')
-    } finally {
-      setUploading(false)
-    }
+    )
   }
 
-  async function handleDelete(id: string, filename: string) {
-    if (!confirm(`Delete "${filename}"? This cannot be undone.`)) return
+  async function handleDelete(id: string, title: string) {
+    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return
 
     setDeletingId(id)
     try {
@@ -247,13 +274,29 @@ export default function AdminPage() {
                     />
                   </div>
 
+                  {/* Upload progress */}
+                  {uploading && (
+                    <div className="animate-fade-in">
+                      <div className="flex justify-between text-xs text-zinc-400 mb-1.5">
+                        <span>Uploading to Firebase Storage...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-dark-border rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-accent-purple to-accent-blue transition-all duration-200"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Feedback messages */}
-                  {uploadError && (
+                  {error && (
                     <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
                       <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
                       </svg>
-                      {uploadError}
+                      {error}
                     </div>
                   )}
                   {uploadSuccess && (
@@ -276,7 +319,7 @@ export default function AdminPage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-                        Uploading...
+                        Uploading... {uploadProgress}%
                       </>
                     ) : (
                       'Upload Animation'
