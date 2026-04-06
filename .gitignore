@@ -36,6 +36,8 @@ next-env.d.ts
 # prisma
 /prisma/*.db
 /prisma/*.db-journal
+/prisma/**/*.db
+/prisma/**/*.db-journal
 
 # uploads
 /public/rives/*.riv
