@@ -7,16 +7,16 @@ const RivePlayer = dynamic(() => import('./RivePlayer'), { ssr: false })
 interface RiveCardProps {
   title: string
   description?: string | null
-  downloadUrl: string
+  fileData: string
 }
 
-export default function RiveCard({ title, description, downloadUrl }: RiveCardProps) {
+export default function RiveCard({ title, description, fileData }: RiveCardProps) {
   return (
     <div className="group relative bg-dark-card rounded-2xl overflow-hidden border border-dark-border hover:border-zinc-600 transition-all duration-300 hover:shadow-2xl hover:shadow-accent-purple/10 hover:-translate-y-0.5 animate-slide-up">
       {/* Rive canvas */}
       <div className="aspect-square bg-dark-bg relative overflow-hidden">
         <RivePlayer
-          src={downloadUrl}
+          fileData={fileData}
           className="w-full h-full"
         />
         {/* Subtle inner glow on hover */}

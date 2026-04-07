@@ -2,15 +2,11 @@
 
 import { useState, useEffect, FormEvent, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
-import { storage } from '@/lib/firebase'
 
 interface RiveFile {
   id: string
   title: string
   description: string | null
-  downloadUrl: string
-  filename: string
   originalName: string
   createdAt: string
 }
@@ -59,56 +55,54 @@ export default function AdminPage() {
     setUploadSuccess('')
     setUploadProgress(0)
 
-    const filename = `${Date.now()}-${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-    const storageRef = ref(storage, `rives/${filename}`)
-    const uploadTask = uploadBytesResumable(storageRef, selectedFile)
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-        setUploadProgress(Math.round(progress))
-      },
-      (uploadError) => {
-        setError(uploadError.message)
-        setUploading(false)
-      },
-      async () => {
-        try {
-          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
-
-          const res = await fetch('/api/rive', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: title.trim(),
-              description: description.trim() || null,
-              downloadUrl,
-              filename,
-              originalName: selectedFile.name,
-            }),
-          })
-
-          if (res.ok) {
-            setUploadSuccess('Animation uploaded successfully!')
-            setTitle('')
-            setDescription('')
-            setSelectedFile(null)
-            setUploadProgress(0)
-            if (fileInputRef.current) fileInputRef.current.value = ''
-            await fetchFiles()
-            setTimeout(() => setUploadSuccess(''), 3000)
-          } else {
-            const data = await res.json()
-            setError(data.error || 'Failed to save animation metadata')
-          }
-        } catch {
-          setError('Something went wrong. Please try again.')
-        } finally {
-          setUploading(false)
-        }
+    const reader = new FileReader()
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        setUploadProgress(Math.round((event.loaded / event.total) * 50))
       }
-    )
+    }
+    reader.onload = async (event) => {
+      try {
+        const base64 = (event.target?.result as string).split(',')[1]
+        setUploadProgress(60)
+
+        const res = await fetch('/api/rive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title.trim(),
+            description: description.trim() || null,
+            fileData: base64,
+            originalName: selectedFile.name,
+          }),
+        })
+
+        setUploadProgress(100)
+
+        if (res.ok) {
+          setUploadSuccess('Animation uploaded successfully!')
+          setTitle('')
+          setDescription('')
+          setSelectedFile(null)
+          setUploadProgress(0)
+          if (fileInputRef.current) fileInputRef.current.value = ''
+          await fetchFiles()
+          setTimeout(() => setUploadSuccess(''), 3000)
+        } else {
+          const data = await res.json()
+          setError(data.error || 'Failed to save animation')
+        }
+      } catch {
+        setError('Something went wrong. Please try again.')
+      } finally {
+        setUploading(false)
+      }
+    }
+    reader.onerror = () => {
+      setError('Failed to read file.')
+      setUploading(false)
+    }
+    reader.readAsDataURL(selectedFile)
   }
 
   async function handleDelete(id: string, title: string) {
@@ -278,7 +272,7 @@ export default function AdminPage() {
                   {uploading && (
                     <div className="animate-fade-in">
                       <div className="flex justify-between text-xs text-zinc-400 mb-1.5">
-                        <span>Uploading to Firebase Storage...</span>
+                        <span>Saving to Firestore...</span>
                         <span>{uploadProgress}%</span>
                       </div>
                       <div className="w-full h-1.5 bg-dark-border rounded-full overflow-hidden">

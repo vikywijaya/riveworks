@@ -14,7 +14,7 @@ export default async function HomePage() {
     id: doc.id,
     title: doc.data().title as string,
     description: (doc.data().description ?? null) as string | null,
-    downloadUrl: doc.data().downloadUrl as string,
+    fileData: doc.data().fileData as string,
     createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
   }))
 
@@ -116,7 +116,7 @@ export default async function HomePage() {
                   key={file.id}
                   title={file.title}
                   description={file.description}
-                  downloadUrl={file.downloadUrl}
+                  fileData={file.fileData}
                 />
               ))}
             </div>
