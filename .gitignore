@@ -42,3 +42,4 @@ next-env.d.ts
 # uploads
 /public/rives/*.riv
 !/public/rives/.gitkeep
+firebase-debug.log
