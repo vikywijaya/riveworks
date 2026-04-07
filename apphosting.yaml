@@ -1,0 +1,19 @@
+runConfig:
+  runtime: nodejs20
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+  maxInstances: 10
+  minInstances: 0
+
+env:
+  - variable: ADMIN_PASSWORD
+    secret: ADMIN_PASSWORD
+  - variable: JWT_SECRET
+    secret: JWT_SECRET
+  - variable: FIREBASE_ADMIN_PROJECT_ID
+    secret: FIREBASE_ADMIN_PROJECT_ID
+  - variable: FIREBASE_ADMIN_CLIENT_EMAIL
+    secret: FIREBASE_ADMIN_CLIENT_EMAIL
+  - variable: FIREBASE_ADMIN_PRIVATE_KEY
+    secret: FIREBASE_ADMIN_PRIVATE_KEY
