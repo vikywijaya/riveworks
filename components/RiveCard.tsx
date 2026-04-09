@@ -32,7 +32,7 @@ export default function RiveCard({ id, title, description, fileUrl }: RiveCardPr
       <div className="aspect-square bg-dark-bg relative overflow-hidden">
         <RivePlayer
           fileUrl={fileUrl}
-          className="w-full h-full"
+          className=""
         />
         {/* Subtle inner glow on hover */}
         <div className="absolute inset-0 ring-1 ring-inset ring-white/5 rounded-t-2xl pointer-events-none group-hover:ring-accent-purple/20 transition-all duration-300" />
