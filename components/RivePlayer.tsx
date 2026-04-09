@@ -12,11 +12,12 @@ interface RivePlayerProps {
 export default function RivePlayer({ fileUrl, className, playing = false }: RivePlayerProps) {
   const { RiveComponent, rive } = useRive({
     src: fileUrl,
-    autoplay: false,
+    autoplay: true,
   })
 
   useEffect(() => {
     if (!rive) return
+    // On first load: pause immediately to show first frame as thumbnail
     if (playing) {
       rive.play()
     } else {
