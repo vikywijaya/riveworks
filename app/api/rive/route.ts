@@ -29,29 +29,40 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { title, description, fileData, originalName } = body
+  const { title, description, fileData, originalName, fileUrl: externalUrl } = body
 
-  if (!title || !fileData) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  if (!title) {
+    return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   }
 
-  // Upload file to Vercel Blob
-  const buffer = Buffer.from(fileData, 'base64')
-  const blob = await put(`rives/${Date.now()}_${originalName}`, buffer, {
-    access: 'public',
-    contentType: 'application/octet-stream',
-  })
+  let fileUrl: string
+  let blobPathname: string | null = null
 
-  // Store metadata + blob URL in Firestore
+  if (externalUrl) {
+    // Use external/hosted URL directly — no blob upload
+    fileUrl = externalUrl
+  } else if (fileData && originalName) {
+    // Upload file to Vercel Blob
+    const buffer = Buffer.from(fileData, 'base64')
+    const blob = await put(`rives/${Date.now()}_${originalName}`, buffer, {
+      access: 'public',
+      contentType: 'application/octet-stream',
+    })
+    fileUrl = blob.url
+    blobPathname = blob.pathname
+  } else {
+    return NextResponse.json({ error: 'Provide either a file or a URL' }, { status: 400 })
+  }
+
   const docRef = await adminDb.collection('rives').add({
     title,
     description: description || null,
-    originalName,
-    fileUrl: blob.url,
-    blobPathname: blob.pathname,
+    originalName: originalName ?? new URL(fileUrl).pathname.split('/').pop() ?? 'external.riv',
+    fileUrl,
+    blobPathname,
     createdAt: new Date(),
     updatedAt: new Date(),
   })
 
-  return NextResponse.json({ id: docRef.id, title, description, originalName, fileUrl: blob.url })
+  return NextResponse.json({ id: docRef.id, title, description, fileUrl })
 }

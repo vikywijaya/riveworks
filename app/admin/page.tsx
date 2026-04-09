@@ -26,9 +26,11 @@ export default function AdminPage() {
   const [savingId, setSavingId] = useState<string | null>(null)
 
   // Upload form state
+  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileUrl, setFileUrl] = useState('')
   const [error, setError] = useState('')
   const [uploadSuccess, setUploadSuccess] = useState('')
 
@@ -52,12 +54,53 @@ export default function AdminPage() {
 
   async function handleUpload(e: FormEvent) {
     e.preventDefault()
-    if (!selectedFile || !title.trim()) return
+    if (!title.trim()) return
+    if (uploadMode === 'file' && !selectedFile) return
+    if (uploadMode === 'url' && !fileUrl.trim()) return
 
     setUploading(true)
     setError('')
     setUploadSuccess('')
     setUploadProgress(0)
+
+    const reset = () => {
+      setTitle('')
+      setDescription('')
+      setSelectedFile(null)
+      setFileUrl('')
+      setUploadProgress(0)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+
+    if (uploadMode === 'url') {
+      try {
+        setUploadProgress(50)
+        const res = await fetch('/api/rive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title.trim(),
+            description: description.trim() || null,
+            fileUrl: fileUrl.trim(),
+          }),
+        })
+        setUploadProgress(100)
+        if (res.ok) {
+          setUploadSuccess('Animation added successfully!')
+          reset()
+          await fetchFiles()
+          setTimeout(() => setUploadSuccess(''), 3000)
+        } else {
+          const data = await res.json()
+          setError(data.error || 'Failed to save animation')
+        }
+      } catch {
+        setError('Something went wrong. Please try again.')
+      } finally {
+        setUploading(false)
+      }
+      return
+    }
 
     const reader = new FileReader()
     reader.onprogress = (event) => {
@@ -77,7 +120,7 @@ export default function AdminPage() {
             title: title.trim(),
             description: description.trim() || null,
             fileData: base64,
-            originalName: selectedFile.name,
+            originalName: selectedFile!.name,
           }),
         })
 
@@ -85,11 +128,7 @@ export default function AdminPage() {
 
         if (res.ok) {
           setUploadSuccess('Animation uploaded successfully!')
-          setTitle('')
-          setDescription('')
-          setSelectedFile(null)
-          setUploadProgress(0)
-          if (fileInputRef.current) fileInputRef.current.value = ''
+          reset()
           await fetchFiles()
           setTimeout(() => setUploadSuccess(''), 3000)
         } else {
@@ -106,7 +145,7 @@ export default function AdminPage() {
       setError('Failed to read file.')
       setUploading(false)
     }
-    reader.readAsDataURL(selectedFile)
+    reader.readAsDataURL(selectedFile!)
   }
 
   async function handleDelete(id: string, title: string) {
@@ -222,8 +261,26 @@ export default function AdminPage() {
                 </h2>
 
                 <form onSubmit={handleUpload} className="space-y-4">
+                  {/* Mode toggle */}
+                  <div className="flex rounded-lg overflow-hidden border border-dark-border">
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode('file')}
+                      className={`flex-1 py-1.5 text-xs font-medium transition-colors ${uploadMode === 'file' ? 'bg-accent-purple text-white' : 'text-zinc-400 hover:text-white'}`}
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode('url')}
+                      className={`flex-1 py-1.5 text-xs font-medium transition-colors ${uploadMode === 'url' ? 'bg-accent-purple text-white' : 'text-zinc-400 hover:text-white'}`}
+                    >
+                      From URL
+                    </button>
+                  </div>
+
                   {/* File input */}
-                  <div>
+                  {uploadMode === 'file' && <div>
                     <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">
                       Rive File (.riv)
                     </label>
@@ -263,7 +320,22 @@ export default function AdminPage() {
                         onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                       />
                     </div>
-                  </div>
+                  </div>}
+
+                  {/* URL input */}
+                  {uploadMode === 'url' && <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">
+                      Rive File URL
+                    </label>
+                    <input
+                      type="url"
+                      value={fileUrl}
+                      onChange={(e) => setFileUrl(e.target.value)}
+                      placeholder="https://example.com/animation.riv"
+                      required={uploadMode === 'url'}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-dark-bg border border-dark-border text-white placeholder-zinc-600 text-sm focus:outline-none focus:border-accent-purple focus:ring-1 focus:ring-accent-purple/40 transition-all duration-200"
+                    />
+                  </div>}
 
                   {/* Title */}
                   <div>
@@ -330,7 +402,7 @@ export default function AdminPage() {
 
                   <button
                     type="submit"
-                    disabled={uploading || !selectedFile || !title.trim()}
+                    disabled={uploading || !title.trim() || (uploadMode === 'file' ? !selectedFile : !fileUrl.trim())}
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-accent-purple to-accent-blue text-white font-semibold text-sm hover:opacity-90 active:opacity-80 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-accent-purple/20 flex items-center justify-center gap-2"
                   >
                     {uploading ? (
