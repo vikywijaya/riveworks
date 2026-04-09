@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRive } from '@rive-app/react-canvas'
+import { useRive } from '@rive-app/react-webgl2'
 
 interface RivePlayerProps {
   fileUrl: string
@@ -17,7 +17,6 @@ export default function RivePlayer({ fileUrl, className, playing = false }: Rive
 
   useEffect(() => {
     if (!rive) return
-    // On first load: pause immediately to show first frame as thumbnail
     if (playing) {
       rive.play()
     } else {
