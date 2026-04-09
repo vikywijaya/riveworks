@@ -6,20 +6,25 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const snapshot = await adminDb
-    .collection('rives')
-    .orderBy('createdAt', 'desc')
-    .get()
+  try {
+    const snapshot = await adminDb
+      .collection('rives')
+      .orderBy('createdAt', 'desc')
+      .get()
 
-  const files = snapshot.docs.map(doc => {
-    return {
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
-    }
-  })
+    const files = snapshot.docs.map(doc => {
+      return {
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
+      }
+    })
 
-  return NextResponse.json(files)
+    return NextResponse.json(files)
+  } catch (err) {
+    console.error('GET /api/rive error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
