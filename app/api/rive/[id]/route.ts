@@ -4,6 +4,23 @@ import { adminDb } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const { id } = params
+  const { title } = await request.json()
+
+  if (!title?.trim()) {
+    return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+  }
+
+  const docRef = adminDb.collection('rives').doc(id)
+  await docRef.update({ title: title.trim(), updatedAt: new Date() })
+
+  return NextResponse.json({ success: true })
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
