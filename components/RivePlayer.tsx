@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRive } from '@rive-app/react-webgl2'
+import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 
 interface RivePlayerProps {
   fileUrl: string
@@ -13,6 +13,7 @@ export default function RivePlayer({ fileUrl, className, playing = false }: Rive
   const { RiveComponent, rive } = useRive({
     src: fileUrl,
     autoplay: true,
+    layout: new Layout({ fit: Fit.Cover, alignment: Alignment.Center }),
   })
 
   useEffect(() => {
