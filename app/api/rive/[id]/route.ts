@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { del } from '@vercel/blob'
 import { adminDb } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
@@ -14,6 +15,13 @@ export async function DELETE(
 
   if (!doc.exists) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const { fileUrl } = doc.data() as { fileUrl?: string }
+
+  // Delete from Vercel Blob if URL exists
+  if (fileUrl) {
+    await del(fileUrl)
   }
 
   await docRef.delete()

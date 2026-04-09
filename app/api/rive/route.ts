@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { put } from '@vercel/blob'
 import { adminDb } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
@@ -11,10 +12,9 @@ export async function GET() {
     .get()
 
   const files = snapshot.docs.map(doc => {
-    const { fileData, ...rest } = doc.data()
     return {
       id: doc.id,
-      ...rest,
+      ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
     }
   })
@@ -30,14 +30,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  // Upload file to Vercel Blob
+  const buffer = Buffer.from(fileData, 'base64')
+  const blob = await put(`rives/${Date.now()}_${originalName}`, buffer, {
+    access: 'public',
+    contentType: 'application/octet-stream',
+  })
+
+  // Store metadata + blob URL in Firestore
   const docRef = await adminDb.collection('rives').add({
     title,
     description: description || null,
-    fileData,
     originalName,
+    fileUrl: blob.url,
+    blobPathname: blob.pathname,
     createdAt: new Date(),
     updatedAt: new Date(),
   })
 
-  return NextResponse.json({ id: docRef.id, title, description, originalName })
+  return NextResponse.json({ id: docRef.id, title, description, originalName, fileUrl: blob.url })
 }

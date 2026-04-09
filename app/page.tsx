@@ -10,13 +10,15 @@ export default async function HomePage() {
     .orderBy('createdAt', 'desc')
     .get()
 
-  const riveFiles = snapshot.docs.map(doc => ({
-    id: doc.id,
-    title: doc.data().title as string,
-    description: (doc.data().description ?? null) as string | null,
-    fileData: doc.data().fileData as string,
-    createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
-  }))
+  const riveFiles = snapshot.docs
+    .filter(doc => !!doc.data().fileUrl)
+    .map(doc => ({
+      id: doc.id,
+      title: doc.data().title as string,
+      description: (doc.data().description ?? null) as string | null,
+      fileUrl: doc.data().fileUrl as string,
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
+    }))
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -114,9 +116,10 @@ export default async function HomePage() {
               {riveFiles.map((file) => (
                 <RiveCard
                   key={file.id}
+                  id={file.id}
                   title={file.title}
                   description={file.description}
-                  fileData={file.fileData}
+                  fileUrl={file.fileUrl}
                 />
               ))}
             </div>

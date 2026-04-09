@@ -8,13 +8,15 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "14.2.5",
-    "react": "^18",
-    "react-dom": "^18",
     "@rive-app/react-canvas": "^4.13.5",
+    "@rive-app/react-webgl2": "^4.27.3",
+    "@vercel/blob": "^2.3.3",
     "firebase": "^10.12.0",
     "firebase-admin": "^12.2.0",
-    "jose": "^5.6.3"
+    "jose": "^5.6.3",
+    "next": "14.2.5",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^20",

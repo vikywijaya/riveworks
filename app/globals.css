@@ -2,6 +2,245 @@
 @tailwind components;
 @tailwind utilities;
 
+/* rive-ray CSS variables — used by DataPanel and RivePreview */
+:root {
+  --bg: #0f1116;
+  --surface: #0c0c0c;
+  --surface-hover: #1a1a1a;
+  --border: #000000;
+  --text: #e3e6ec;
+  --text-muted: #959595;
+  --accent: #6c5ce7;
+  --accent-hover: #7d6ff0;
+  --tag-bool: #00b893;
+  --tag-number: #0984e3;
+  --tag-trigger: #e06f54;
+  --tag-string: #fcca6d;
+  --tag-color: #e84393;
+  --tag-enum: #a19bfd;
+  --tag-list: #74b9ff;
+  --radius: 10px;
+}
+
+/* ── App layout (exact from rive-ray App.css) ── */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.header { display: flex; align-items: center; flex-shrink: 0; }
+.inspector-header { justify-content: space-between; height: 96px; padding: 15px 40px; background: #0c0c0c; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-title { font-size: 32px; font-weight: 600; color: #d6d6d6; }
+.header-divider { width: 1px; height: 26px; background: #787878; flex-shrink: 0; }
+.header-subtitle { font-size: 32px; font-weight: 500; color: #3c3c3c; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.file-chip { padding: 9px 10px; border-radius: 6px; color: #959595; font-size: 11px; font-family: 'SF Mono','Fira Code',monospace; }
+.remove-btn { background: #7f0000; border: none; color: #959595; padding: 9px 13px; border-radius: 6px; cursor: pointer; font-size: 11px; transition: background 0.2s; }
+.remove-btn:hover { background: #a00000; }
+.main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+.preview-panel { flex: 1; display: flex; flex-direction: column; background: #000000; overflow: hidden; }
+.preview-wrapper { display: flex; flex-direction: column; width: 100%; height: 100%; }
+.preview-canvas-area { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.preview-canvas-area canvas { max-width: 100%; max-height: 100%; }
+@media (max-width: 900px) {
+  .main { flex-direction: column; }
+  .data-panel { width: 100%; min-width: unset; max-height: 50vh; border-left: none; border-top: 1px solid var(--border); }
+  .preview-panel { min-height: 300px; }
+}
+
+/* ── DataPanel styles (exact from rive-ray App.css) ── */
+.data-panel {
+  width: 420px;
+  min-width: 420px;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.data-panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.data-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.data-panel-header .count {
+  background: #3b3b3b;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.data-section { border-bottom: 1px solid var(--border); }
+.data-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+  user-select: none;
+}
+.data-section-header:hover { color: var(--text); }
+.data-section-header .chevron { transition: transform 0.2s; font-size: 0.7rem; }
+.data-section-header .chevron.open { transform: rotate(90deg); }
+.data-section-content { padding: 0 20px 12px; }
+.data-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  font-size: 0.8rem;
+}
+.vm-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+.vm-badge-main { background: rgba(99,179,237,0.18); color: #63b3ed; border: 1px solid rgba(99,179,237,0.3); }
+.vm-badge-vm   { background: rgba(154,117,234,0.15); color: #9a75ea; border: 1px solid rgba(154,117,234,0.25); }
+.vm-badge-sm   { background: rgba(104,211,145,0.15); color: #68d391; border: 1px solid rgba(104,211,145,0.25); }
+.data-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  gap: 8px;
+  min-height: 44px;
+}
+.data-item-control { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.bool-toggle {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 10px 3px 4px;
+  cursor: pointer; transition: all 0.2s;
+  font-size: 0.75rem; font-weight: 500; color: var(--text-muted);
+}
+.bool-toggle.on  { border-color: var(--tag-bool); color: var(--tag-bool); background: color-mix(in srgb, var(--tag-bool) 10%, transparent); }
+.bool-toggle.off { border-color: var(--border); color: var(--text-muted); }
+.bool-toggle-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--border); transition: background 0.2s; flex-shrink: 0;
+}
+.bool-toggle.on .bool-toggle-thumb { background: var(--tag-bool); }
+.bool-toggle-label { font-family: 'SF Mono','Fira Code',monospace; font-size: 0.72rem; min-width: 26px; }
+.trigger-btn {
+  padding: 4px 12px; border-radius: 6px;
+  border: 1px solid var(--tag-trigger);
+  background: color-mix(in srgb, var(--tag-trigger) 12%, transparent);
+  color: var(--tag-trigger); font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; transition: all 0.18s; min-width: 52px;
+}
+.trigger-btn:hover { background: color-mix(in srgb, var(--tag-trigger) 25%, transparent); }
+.trigger-btn.fired {
+  background: var(--tag-trigger); color: white;
+  animation: trigger-flash 0.6s ease-out;
+}
+@keyframes trigger-flash { 0% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.var-select {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 4px 8px;
+  font-size: 0.78rem; font-family: 'SF Mono','Fira Code',monospace;
+  cursor: pointer; outline: none; transition: border-color 0.2s; max-width: 130px;
+}
+.var-select:hover,.var-select:focus { border-color: var(--tag-enum); }
+.color-control {
+  position: relative; display: flex; align-items: center; gap: 6px;
+  cursor: pointer; border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 8px 3px 5px; background: var(--surface); transition: border-color 0.2s;
+}
+.color-control:hover { border-color: var(--tag-color); }
+.string-input {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 0.78rem;
+  padding: 4px 8px; width: 120px; outline: none; transition: border-color 0.2s;
+}
+.string-input:focus { border-color: var(--accent); }
+.data-item-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.data-item-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.data-item-name { font-family: 'SF Mono','Fira Code',monospace; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.data-item-source { font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.7; }
+.data-item-value { font-family: 'SF Mono','Fira Code',monospace; font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; text-align: right; }
+.color-swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.12); flex-shrink: 0; display: inline-block; }
+.type-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; flex-shrink: 0; }
+.type-tag.boolean { background: color-mix(in srgb, var(--tag-bool)    20%, transparent); color: var(--tag-bool); }
+.type-tag.trigger { background: color-mix(in srgb, var(--tag-trigger) 20%, transparent); color: var(--tag-trigger); }
+.type-tag.string  { background: color-mix(in srgb, var(--tag-string)  20%, transparent); color: var(--tag-string); }
+.type-tag.color   { background: color-mix(in srgb, var(--tag-color)   20%, transparent); color: var(--tag-color); }
+.type-tag.enum    { background: color-mix(in srgb, var(--tag-enum)    20%, transparent); color: var(--tag-enum); }
+.empty-section { padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
+.artboard-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+.artboard-tab { padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+.artboard-tab:hover { color: var(--text); border-color: #3b3b3b; }
+.artboard-tab.active { background: #3b3b3b; color: white; border-color: #3b3b3b; }
+
+/* ── RivePreview toolbar styles ── */
+.renderer-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; height: 84px;
+  background: #0c0c0c;
+  padding: 30px 40px;
+  flex-shrink: 0;
+  font-size: 0.8rem; white-space: nowrap;
+}
+.toolbar-group { display: flex; align-items: center; gap: 7px; }
+.toolbar-label { color: var(--text-muted); font-size: 0.75rem; font-weight: 500; user-select: none; }
+.sm-select {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 3px 8px;
+  font-size: 0.78rem; font-family: 'SF Mono','Fira Code',monospace;
+  cursor: pointer; outline: none; transition: border-color 0.2s; max-width: 160px;
+}
+.sm-select:hover,.sm-select:focus { border-color: var(--accent); }
+.renderer-pill { display: flex; background: #0f1116; border: 1px solid #000; border-radius: 6px; overflow: hidden; }
+.pill-option { padding: 3px 10px; font-size: 0.75rem; font-weight: 500; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.18s; user-select: none; }
+.pill-option:first-child { border-right: 1px solid #000; }
+.pill-option:hover { color: var(--text); }
+.pill-option.active { background: #3b3b3b; color: white; }
+
+/* ── Number slider ── */
+.number-slider-control { display: flex; align-items: center; gap: 8px; width: 140px; }
+.number-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: var(--border); outline: none; cursor: pointer; }
+.number-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--tag-number); cursor: pointer; transition: transform 0.1s; }
+.number-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.number-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--tag-number); border: none; cursor: pointer; }
+.number-slider-value { font-size: 0.75rem; color: var(--text-muted); min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+.type-tag.number { background: color-mix(in srgb, var(--tag-number) 20%, transparent); color: var(--tag-number); }
+
+/* ── Loading spinner ── */
+.loading { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); font-size: 0.9rem; padding: 40px; }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Scrollbar for data panel ── */
+.data-panel-body::-webkit-scrollbar { width: 6px; }
+.data-panel-body::-webkit-scrollbar-track { background: transparent; }
+.data-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.data-panel-body::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
 body {
   background-color: #0a0a0f;
   color: #ededed;

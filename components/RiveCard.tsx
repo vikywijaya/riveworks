@@ -1,22 +1,24 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 
 const RivePlayer = dynamic(() => import('./RivePlayer'), { ssr: false })
 
 interface RiveCardProps {
+  id: string
   title: string
   description?: string | null
-  fileData: string
+  fileUrl: string
 }
 
-export default function RiveCard({ title, description, fileData }: RiveCardProps) {
+export default function RiveCard({ id, title, description, fileUrl }: RiveCardProps) {
   return (
-    <div className="group relative bg-dark-card rounded-2xl overflow-hidden border border-dark-border hover:border-zinc-600 transition-all duration-300 hover:shadow-2xl hover:shadow-accent-purple/10 hover:-translate-y-0.5 animate-slide-up">
+    <Link href={`/rive/${id}`} className="block group relative bg-dark-card rounded-2xl overflow-hidden border border-dark-border hover:border-zinc-600 transition-all duration-300 hover:shadow-2xl hover:shadow-accent-purple/10 hover:-translate-y-0.5 animate-slide-up">
       {/* Rive canvas */}
       <div className="aspect-square bg-dark-bg relative overflow-hidden">
         <RivePlayer
-          fileData={fileData}
+          fileUrl={fileUrl}
           className="w-full h-full"
         />
         {/* Subtle inner glow on hover */}
@@ -37,6 +39,6 @@ export default function RiveCard({ title, description, fileData }: RiveCardProps
 
       {/* Bottom accent line on hover */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent-purple via-accent-blue to-accent-cyan scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-    </div>
+    </Link>
   )
 }

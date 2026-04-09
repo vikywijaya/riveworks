@@ -1,27 +1,19 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useRive } from '@rive-app/react-canvas'
 
 interface RivePlayerProps {
-  fileData: string  // base64-encoded .riv file
+  fileUrl: string
   className?: string
 }
 
-export default function RivePlayer({ fileData, className }: RivePlayerProps) {
-  const buffer = useMemo(() => {
-    const binary = atob(fileData)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i)
-    }
-    return bytes.buffer
-  }, [fileData])
-
+export default function RivePlayer({ fileUrl, className }: RivePlayerProps) {
   const { RiveComponent } = useRive({
-    buffer,
+    src: fileUrl,
     autoplay: true,
   })
+
+  if (!fileUrl) return null
 
   return <RiveComponent className={className} />
 }
