@@ -34,10 +34,10 @@ export async function DELETE(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const { fileUrl } = doc.data() as { fileUrl?: string }
+  const { fileUrl, blobPathname } = doc.data() as { fileUrl?: string; blobPathname?: string | null }
 
-  // Delete from Vercel Blob if URL exists
-  if (fileUrl) {
+  // Only delete from Vercel Blob if it was uploaded there (not an external URL)
+  if (fileUrl && blobPathname) {
     await del(fileUrl)
   }
 
