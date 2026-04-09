@@ -34,7 +34,7 @@ export default function RivePlayer({ fileUrl, className, playing = false }: Rive
     <div className={`absolute inset-0 ${className ?? ''}`}>
       {/* Preloader */}
       {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-dark-bg">
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-100">
           <div className="spinner" />
         </div>
       )}

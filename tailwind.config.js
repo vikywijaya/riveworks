@@ -8,13 +8,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'dark-bg': '#0a0a0f',
-        'dark-card': '#12121a',
-        'dark-border': '#1e1e2e',
-        'dark-hover': '#1a1a28',
-        'accent-purple': '#7c3aed',
-        'accent-blue': '#2563eb',
-        'accent-cyan': '#06b6d4',
+        'dark-bg': '#f5f5f7',
+        'dark-card': '#ffffff',
+        'dark-border': '#e4e4e7',
+        'dark-hover': '#f0f0f5',
+        'accent-purple': '#0057FF',
+        'accent-blue': '#0057FF',
+        'accent-cyan': '#0057FF',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -31,13 +31,13 @@ module.exports = {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(124, 58, 237, 0.3)' },
-          '50%': { boxShadow: '0 0 40px rgba(124, 58, 237, 0.6)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgba(0, 87, 255, 0.15)' },
+          '50%': { boxShadow: '0 0 40px rgba(0, 87, 255, 0.3)' },
         },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-mesh': 'linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0a0a0f 100%)',
+        'gradient-mesh': 'linear-gradient(135deg, #f5f5f7 0%, #ffffff 50%, #f5f5f7 100%)',
       },
     },
   },
