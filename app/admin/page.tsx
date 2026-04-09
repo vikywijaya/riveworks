@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [editingDescription, setEditingDescription] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
 
   // Upload form state
@@ -133,10 +134,10 @@ export default function AdminPage() {
       const res = await fetch(`/api/rive/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editingTitle.trim() }),
+        body: JSON.stringify({ title: editingTitle.trim(), description: editingDescription.trim() || null }),
       })
       if (res.ok) {
-        setFiles((prev) => prev.map((f) => f.id === id ? { ...f, title: editingTitle.trim() } : f))
+        setFiles((prev) => prev.map((f) => f.id === id ? { ...f, title: editingTitle.trim(), description: editingDescription.trim() || null } : f))
         setEditingId(null)
       } else {
         alert('Failed to update title')
@@ -406,47 +407,58 @@ export default function AdminPage() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         {editingId === file.id ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2">
+                              <input
+                                autoFocus
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') setEditingId(null)
+                                }}
+                                placeholder="Title"
+                                className="flex-1 min-w-0 px-2.5 py-1 rounded-lg bg-dark-bg border border-accent-purple text-white text-sm focus:outline-none"
+                              />
+                              <button
+                                onClick={() => handleRename(file.id)}
+                                disabled={savingId === file.id}
+                                className="p-1.5 rounded-lg text-accent-purple hover:bg-accent-purple/10 transition-colors"
+                              >
+                                {savingId === file.id ? (
+                                  <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => setEditingId(null)}
+                                className="p-1.5 rounded-lg text-zinc-500 hover:bg-white/5 transition-colors"
+                              >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
                             <input
-                              autoFocus
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
+                              value={editingDescription}
+                              onChange={(e) => setEditingDescription(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleRename(file.id)
                                 if (e.key === 'Escape') setEditingId(null)
                               }}
-                              className="flex-1 min-w-0 px-2.5 py-1 rounded-lg bg-dark-bg border border-accent-purple text-white text-sm focus:outline-none"
+                              placeholder="Description (optional)"
+                              className="w-full px-2.5 py-1 rounded-lg bg-dark-bg border border-dark-border text-white text-xs placeholder-zinc-600 focus:outline-none focus:border-accent-purple/60"
                             />
-                            <button
-                              onClick={() => handleRename(file.id)}
-                              disabled={savingId === file.id}
-                              className="p-1.5 rounded-lg text-accent-purple hover:bg-accent-purple/10 transition-colors"
-                            >
-                              {savingId === file.id ? (
-                                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                              ) : (
-                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="p-1.5 rounded-lg text-zinc-500 hover:bg-white/5 transition-colors"
-                            >
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 group/title">
                             <h3 className="font-semibold text-white text-sm truncate">{file.title}</h3>
                             <button
-                              onClick={() => { setEditingId(file.id); setEditingTitle(file.title) }}
+                              onClick={() => { setEditingId(file.id); setEditingTitle(file.title); setEditingDescription(file.description ?? '') }}
                               className="opacity-0 group-hover/title:opacity-100 p-1 rounded text-zinc-600 hover:text-zinc-300 transition-all"
                               title="Edit title"
                             >

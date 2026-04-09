@@ -9,14 +9,14 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const { id } = params
-  const { title } = await request.json()
+  const { title, description } = await request.json()
 
   if (!title?.trim()) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   }
 
   const docRef = adminDb.collection('rives').doc(id)
-  await docRef.update({ title: title.trim(), updatedAt: new Date() })
+  await docRef.update({ title: title.trim(), description: description?.trim() || null, updatedAt: new Date() })
 
   return NextResponse.json({ success: true })
 }
