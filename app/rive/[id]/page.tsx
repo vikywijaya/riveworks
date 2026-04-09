@@ -84,9 +84,13 @@ export default function RiveDetailPage() {
               <text x="4" y="38" fontFamily="'SF Mono','Fira Code',monospace" fontSize="36" fontWeight="700" fill="#6c5ce7">RW</text>
             </svg>
           </button>
-          <span className="header-title">RiveWorks</span>
-          <div className="header-divider" />
-          <span className="header-subtitle">Rive inspector</span>
+          <span className="header-title">{file.title}</span>
+          {file.description && (
+            <>
+              <div className="header-divider" />
+              <span className="header-subtitle">{file.description}</span>
+            </>
+          )}
         </div>
         <div className="header-right">
           <div className="file-chip">{file.originalName}</div>
