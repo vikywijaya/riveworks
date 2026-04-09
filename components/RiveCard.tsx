@@ -38,7 +38,7 @@ export default function RiveCard({ id, title, description, fileUrl }: RiveCardPr
       <div className="aspect-square bg-dark-bg relative overflow-hidden">
         <RivePlayer
           fileUrl={fileUrl}
-          className="w-full h-full"
+          className=""
           playing={hovered}
         />
         {/* Subtle inner glow on hover */}
