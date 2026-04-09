@@ -30,30 +30,30 @@ export default function RiveCard({ id, title, description, fileUrl }: RiveCardPr
   return (
     <Link
       href={`/rive/${id}`}
-      className="block group relative bg-dark-card rounded-2xl overflow-hidden border border-dark-border hover:border-zinc-300 transition-all duration-300 hover:shadow-2xl hover:shadow-accent-purple/10 hover:-translate-y-0.5 animate-slide-up"
+      className="block group relative bg-dark-card rounded-2xl overflow-hidden border border-dark-border hover:border-zinc-600 transition-all duration-300 hover:shadow-2xl hover:shadow-accent-purple/10 hover:-translate-y-0.5 animate-slide-up"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {/* Rive canvas */}
-      <div className="aspect-square bg-zinc-100 relative overflow-hidden">
+      <div className="aspect-square bg-dark-bg relative overflow-hidden">
         <RivePlayer
           fileUrl={fileUrl}
           className=""
           playing={hovered}
         />
         {/* Subtle inner glow on hover */}
-        <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-t-2xl pointer-events-none group-hover:ring-accent-purple/20 transition-all duration-300" />
+        <div className="absolute inset-0 ring-1 ring-inset ring-white/5 rounded-t-2xl pointer-events-none group-hover:ring-accent-purple/20 transition-all duration-300" />
       </div>
 
       {/* Card footer */}
       <div className="p-4 border-t border-dark-border">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="font-semibold text-zinc-900 text-base leading-tight truncate">
+            <h3 className="font-semibold text-white text-base leading-tight truncate">
               {title}
             </h3>
             {description && (
-              <p className="text-zinc-500 text-sm mt-1 line-clamp-2 leading-relaxed">
+              <p className="text-zinc-400 text-sm mt-1 line-clamp-2 leading-relaxed">
                 {description}
               </p>
             )}
@@ -63,7 +63,7 @@ export default function RiveCard({ id, title, description, fileUrl }: RiveCardPr
           <button
             onClick={handleCopy}
             title={copied ? 'Copied!' : 'Copy link'}
-            className="shrink-0 mt-0.5 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-black/5 transition-all duration-200"
+            className="shrink-0 mt-0.5 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-all duration-200"
           >
             {copied ? (
               <svg className="w-4 h-4 text-accent-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
