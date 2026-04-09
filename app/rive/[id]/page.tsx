@@ -100,7 +100,7 @@ export default function RiveDetailPage() {
 
       {/* Main layout — exact mirror of rive-ray .main */}
       <div className="main">
-        <div className="preview-panel">
+        <div className="preview-panel" style={{ position: 'relative' }}>
           <RivePlayerDetail
             key={selectedArtboard ?? '__default__'}
             fileUrl={file.fileUrl}
@@ -108,6 +108,15 @@ export default function RiveDetailPage() {
             onDataExtracted={setFileData}
             onRiveReady={handleRiveReady}
           />
+          {/* Title overlay — sits above toolbar, bottom of canvas */}
+          <div className="preview-title-overlay">
+            <div className="preview-title-inner">
+              <h1 className="preview-title-text">{file.title}</h1>
+              {file.description && (
+                <p className="preview-title-desc">{file.description}</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <DataPanel
