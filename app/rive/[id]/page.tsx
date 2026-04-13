@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import type { RiveFileData } from '@/lib/extractRiveData'
 import { DataPanel } from '@/components/DataPanel'
+import Logo from '@/components/Logo'
 
 const RivePlayerDetail = dynamic(() => import('@/components/RivePlayerDetail'), { ssr: false })
 
@@ -80,9 +81,7 @@ export default function RiveDetailPage() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0 }}
             title="Back to gallery"
           >
-            <svg width="70" height="50" viewBox="0 0 70 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="4" y="38" fontFamily="'SF Mono','Fira Code',monospace" fontSize="36" fontWeight="700" fill="#6c5ce7">RW</text>
-            </svg>
+            <Logo height={28} className="text-white" />
           </button>
           <span className="header-title">RiveWorks</span>
           <div className="header-divider" />

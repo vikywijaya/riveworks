@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Logo from '@/components/Logo'
 
 interface RiveFile {
   id: string
@@ -207,15 +208,8 @@ export default function AdminPage() {
         <header className="border-b border-dark-border bg-dark-bg/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-purple to-accent-blue flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
+              <Logo height={22} className="text-white" />
               <div>
-                <span className="text-lg font-bold text-white tracking-tight">
-                  Rive<span className="text-accent-purple">Works</span>
-                </span>
                 <span className="ml-2 text-xs text-zinc-500 font-medium uppercase tracking-widest">
                   Admin
                 </span>

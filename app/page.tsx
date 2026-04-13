@@ -1,5 +1,6 @@
 import { adminDb } from '@/lib/firebase-admin'
 import RiveCard from '@/components/RiveCard'
+import Logo from '@/components/Logo'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -33,20 +34,7 @@ export default async function HomePage() {
         {/* Header */}
         <header className="border-b border-dark-border bg-dark-bg/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-purple to-accent-blue flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-white"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="text-xl font-bold text-white tracking-tight">
-                Rive<span className="text-accent-purple">Works</span>
-              </span>
-            </div>
+            <Logo height={24} className="text-white" />
             <Link
               href="/admin"
               className="text-sm text-zinc-400 hover:text-white transition-colors duration-200 px-3 py-1.5 rounded-lg border border-dark-border hover:border-zinc-600"
@@ -129,12 +117,7 @@ export default async function HomePage() {
         {/* Footer */}
         <footer className="border-t border-dark-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded bg-gradient-to-br from-accent-purple to-accent-blue" />
-              <span className="text-sm font-medium text-zinc-400">
-                RiveWorks
-              </span>
-            </div>
+            <Logo height={16} className="text-zinc-400" />
             <p className="text-xs text-zinc-600">
               Built with Next.js &amp; Rive
             </p>
