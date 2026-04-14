@@ -114,6 +114,13 @@ export default function AdminPage() {
         const base64 = (event.target?.result as string).split(',')[1]
         setUploadProgress(60)
 
+        // Animate progress from 60 → 90 while upload is in flight
+        let fakeProgress = 60
+        const ticker = setInterval(() => {
+          fakeProgress = Math.min(fakeProgress + 3, 90)
+          setUploadProgress(fakeProgress)
+        }, 200)
+
         const res = await fetch('/api/rive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -125,6 +132,7 @@ export default function AdminPage() {
           }),
         })
 
+        clearInterval(ticker)
         setUploadProgress(100)
 
         if (res.ok) {
@@ -137,6 +145,7 @@ export default function AdminPage() {
           setError(data.error || 'Failed to save animation')
         }
       } catch {
+        clearInterval(ticker)
         setError('Something went wrong. Please try again.')
       } finally {
         setUploading(false)
@@ -364,12 +373,14 @@ export default function AdminPage() {
                   {uploading && (
                     <div className="animate-fade-in">
                       <div className="flex justify-between text-xs text-zinc-400 mb-1.5">
-                        <span>Saving to Firestore...</span>
+                        <span>
+                          {uploadProgress < 50 ? 'Reading file...' : uploadProgress < 90 ? 'Uploading...' : 'Saving...'}
+                        </span>
                         <span>{uploadProgress}%</span>
                       </div>
                       <div className="w-full h-1.5 bg-dark-border rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-accent-purple to-accent-blue transition-all duration-200"
+                          className="h-full bg-gradient-to-r from-accent-purple to-accent-blue transition-all duration-500"
                           style={{ width: `${uploadProgress}%` }}
                         />
                       </div>
