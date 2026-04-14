@@ -22,8 +22,7 @@ export default function LoginPage() {
       })
 
       if (res.ok) {
-        router.push('/admin')
-        router.refresh()
+        window.location.href = '/admin'
       } else {
         const data = await res.json()
         setError(data.error || 'Invalid password')
