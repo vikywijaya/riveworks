@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useState } from 'react'
 
-const RivePlayer = dynamic(() => import('./RivePlayer'), { ssr: false })
+const RiveThumbnail = dynamic(() => import('./RiveThumbnail'), { ssr: false })
 
 interface RiveCardProps {
   id: string
@@ -15,7 +15,6 @@ interface RiveCardProps {
 
 export default function RiveCard({ id, title, description, fileUrl }: RiveCardProps) {
   const [copied, setCopied] = useState(false)
-  const [hovered, setHovered] = useState(false)
 
   function handleCopy(e: React.MouseEvent) {
     e.preventDefault()
@@ -31,16 +30,10 @@ export default function RiveCard({ id, title, description, fileUrl }: RiveCardPr
     <Link
       href={`/rive/${id}`}
       className="block group relative bg-dark-card rounded-2xl overflow-hidden border border-dark-border hover:border-zinc-600 transition-all duration-300 hover:shadow-2xl hover:shadow-accent-purple/10 hover:-translate-y-0.5 animate-slide-up"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
-      {/* Rive canvas */}
+      {/* Thumbnail snapshot */}
       <div className="aspect-square bg-dark-bg relative overflow-hidden">
-        <RivePlayer
-          fileUrl={fileUrl}
-          className=""
-          playing={hovered}
-        />
+        <RiveThumbnail fileUrl={fileUrl} />
         {/* Subtle inner glow on hover */}
         <div className="absolute inset-0 ring-1 ring-inset ring-white/5 rounded-t-2xl pointer-events-none group-hover:ring-accent-purple/20 transition-all duration-300" />
       </div>
