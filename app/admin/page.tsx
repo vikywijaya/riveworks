@@ -110,13 +110,14 @@ export default function AdminPage() {
       }
     }
     reader.onload = async (event) => {
+      let ticker: ReturnType<typeof setInterval> | null = null
       try {
         const base64 = (event.target?.result as string).split(',')[1]
         setUploadProgress(60)
 
         // Animate progress from 60 → 90 while upload is in flight
         let fakeProgress = 60
-        const ticker = setInterval(() => {
+        ticker = setInterval(() => {
           fakeProgress = Math.min(fakeProgress + 3, 90)
           setUploadProgress(fakeProgress)
         }, 200)
@@ -145,7 +146,7 @@ export default function AdminPage() {
           setError(data.error || 'Failed to save animation')
         }
       } catch {
-        clearInterval(ticker)
+        if (ticker) clearInterval(ticker)
         setError('Something went wrong. Please try again.')
       } finally {
         setUploading(false)
