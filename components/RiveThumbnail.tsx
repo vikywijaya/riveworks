@@ -1,16 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas'
 
-interface RiveThumbnailProps {
+interface Props {
   fileUrl: string
-  className?: string
 }
 
-// Renders Rive off-screen, waits for a frame, then snapshots as PNG
-function RiveSnapper({ fileUrl, onSnapshot }: { fileUrl: string; onSnapshot: (url: string) => void }) {
+export default function RiveThumbnail({ fileUrl }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [snapshot, setSnapshot] = useState<string | null>(null)
   const snapped = useRef(false)
 
   const { RiveComponent, rive } = useRive({
@@ -19,69 +18,64 @@ function RiveSnapper({ fileUrl, onSnapshot }: { fileUrl: string; onSnapshot: (ur
     layout: new Layout({ fit: Fit.Cover, alignment: Alignment.Center }),
   })
 
-  useEffect(() => {
-    if (!rive || snapped.current) return
+  const tryCapture = useCallback(() => {
+    if (snapped.current) return
+    const riveCanvas = containerRef.current?.querySelector('canvas')
+    if (!riveCanvas || riveCanvas.width === 0) return
 
-    // Wait enough frames for the first frame to actually render
-    let frameCount = 0
+    // Copy to a 2D canvas to read pixels
+    const copy = document.createElement('canvas')
+    copy.width = riveCanvas.width
+    copy.height = riveCanvas.height
+    const ctx = copy.getContext('2d')
+    if (!ctx) return
+
+    try {
+      ctx.drawImage(riveCanvas, 0, 0)
+      const data = ctx.getImageData(0, 0, 8, 8).data
+      // Check if at least one pixel is non-transparent
+      const hasPixels = data.some((v, i) => i % 4 === 3 && v > 0)
+      if (!hasPixels) return
+
+      const dataUrl = copy.toDataURL('image/png')
+      snapped.current = true
+      setSnapshot(dataUrl)
+    } catch {
+      // cross-origin taint — just leave the live canvas visible
+      snapped.current = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!rive) return
+
+    let attempts = 0
     let rafId: number
 
-    const trySnapshot = () => {
-      frameCount++
-      if (frameCount < 6) {
-        rafId = requestAnimationFrame(trySnapshot)
-        return
-      }
-
-      const canvas = containerRef.current?.querySelector('canvas')
-      if (!canvas) {
-        rafId = requestAnimationFrame(trySnapshot)
-        return
-      }
-
-      try {
-        const dataUrl = canvas.toDataURL('image/png')
-        // A blank canvas returns a very short data URL
-        if (dataUrl.length > 5000) {
-          snapped.current = true
-          onSnapshot(dataUrl)
-        } else {
-          // Not rendered yet, try again
-          if (frameCount < 60) rafId = requestAnimationFrame(trySnapshot)
-        }
-      } catch {
-        // canvas tainted — give up
-        snapped.current = true
+    const loop = () => {
+      attempts++
+      tryCapture()
+      if (!snapped.current && attempts < 120) {
+        rafId = requestAnimationFrame(loop)
       }
     }
 
-    rafId = requestAnimationFrame(trySnapshot)
+    rafId = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafId)
-  }, [rive, onSnapshot])
+  }, [rive, tryCapture])
 
   return (
-    <div
-      ref={containerRef}
-      style={{ position: 'absolute', width: 400, height: 400, top: -9999, left: -9999, pointerEvents: 'none' }}
-      aria-hidden
-    >
-      <RiveComponent style={{ width: 400, height: 400 }} />
-    </div>
-  )
-}
+    <div className="absolute inset-0 w-full h-full">
+      {/* Live canvas — visible until snapshot is ready, then hidden */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ opacity: snapshot ? 0 : 1, pointerEvents: 'none' }}
+      >
+        <RiveComponent className="w-full h-full" />
+      </div>
 
-export default function RiveThumbnail({ fileUrl, className }: RiveThumbnailProps) {
-  const [snapshot, setSnapshot] = useState<string | null>(null)
-  const [capturing, setCapturing] = useState(true)
-
-  const handleSnapshot = (url: string) => {
-    setSnapshot(url)
-    setCapturing(false)
-  }
-
-  return (
-    <div className={`relative w-full h-full ${className ?? ''}`}>
-      {/* Static snapshot once captured */}
+      {/* Static snapshot */}
       {snapshot && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -92,14 +86,9 @@ export default function RiveThumbnail({ fileUrl, className }: RiveThumbnailProps
         />
       )}
 
-      {/* Shimmer while waiting */}
-      {!snapshot && (
-        <div className="absolute inset-0 bg-dark-bg animate-pulse" />
-      )}
-
-      {/* Off-screen snapper — unmounts once done */}
-      {capturing && (
-        <RiveSnapper fileUrl={fileUrl} onSnapshot={handleSnapshot} />
+      {/* Shimmer before first render */}
+      {!snapshot && !rive && (
+        <div className="absolute inset-0 bg-zinc-900 animate-pulse" />
       )}
     </div>
   )
