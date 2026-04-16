@@ -3,6 +3,9 @@ import RiveCard from '@/components/RiveCard'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
+import dynamicImport from 'next/dynamic'
+
+const HeroAnimation = dynamicImport(() => import('@/components/HeroAnimation'), { ssr: false })
 
 export const dynamic = 'force-dynamic'
 
@@ -53,24 +56,32 @@ export default async function HomePage() {
 
         {/* Hero */}
         <section className="pt-16 pb-14">
-          <div className="flex flex-col gap-4 max-w-3xl">
-            <p
-              className="text-xs text-ink-dim tracking-[0.2em] uppercase"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              Motion Portfolio — {year}
-            </p>
-            <h1
-              className="text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.03em] text-ink font-normal"
-              style={{ fontFamily: "'Instrument Serif', serif" }}
-            >
-              Interactive<br />
-              <em className="not-italic" style={{ color: '#888580' }}>Rive</em>{' '}
-              Animations
-            </h1>
-            <p className="text-sm text-ink-dim max-w-sm leading-relaxed mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              A curated set of motion pieces — click to inspect states, variables, and transitions.
-            </p>
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+            {/* Text */}
+            <div className="flex flex-col gap-4 flex-1 min-w-0">
+              <p
+                className="text-xs text-ink-dim tracking-[0.2em] uppercase"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                Motion Portfolio — {year}
+              </p>
+              <h1
+                className="text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.03em] text-ink font-normal"
+                style={{ fontFamily: "'Instrument Serif', serif" }}
+              >
+                Interactive<br />
+                <em className="not-italic" style={{ color: '#888580' }}>Rive</em>{' '}
+                Animations
+              </h1>
+              <p className="text-sm text-ink-dim max-w-sm leading-relaxed mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                A curated set of motion pieces — click to inspect states, variables, and transitions.
+              </p>
+            </div>
+
+            {/* Rive hero animation */}
+            <div className="w-full lg:w-[460px] h-[380px] flex-shrink-0">
+              <HeroAnimation />
+            </div>
           </div>
         </section>
 
