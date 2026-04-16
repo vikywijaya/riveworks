@@ -5,16 +5,21 @@ import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas'
 
 interface Props {
   fileUrl: string
+  thumbnailUrl?: string | null
+  bgColor?: string | null
 }
 
-export default function RiveThumbnail({ fileUrl }: Props) {
+export default function RiveThumbnail({ fileUrl, thumbnailUrl, bgColor }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [snapshot, setSnapshot] = useState<string | null>(null)
   const snapped = useRef(false)
 
+  // If a custom thumbnail is provided, skip the canvas capture entirely
+  const skipCapture = !!thumbnailUrl
+
   const { RiveComponent, rive } = useRive({
-    src: fileUrl,
-    autoplay: true,
+    src: skipCapture ? '' : fileUrl,
+    autoplay: !skipCapture,
     layout: new Layout({ fit: Fit.Cover, alignment: Alignment.Center }),
   })
 
@@ -23,7 +28,6 @@ export default function RiveThumbnail({ fileUrl }: Props) {
     const riveCanvas = containerRef.current?.querySelector('canvas')
     if (!riveCanvas || riveCanvas.width === 0) return
 
-    // Copy to a 2D canvas to read pixels
     const copy = document.createElement('canvas')
     copy.width = riveCanvas.width
     copy.height = riveCanvas.height
@@ -33,7 +37,6 @@ export default function RiveThumbnail({ fileUrl }: Props) {
     try {
       ctx.drawImage(riveCanvas, 0, 0)
       const data = ctx.getImageData(0, 0, 8, 8).data
-      // Check if at least one pixel is non-transparent
       const hasPixels = data.some((v, i) => i % 4 === 3 && v > 0)
       if (!hasPixels) return
 
@@ -41,13 +44,12 @@ export default function RiveThumbnail({ fileUrl }: Props) {
       snapped.current = true
       setSnapshot(dataUrl)
     } catch {
-      // cross-origin taint — just leave the live canvas visible
       snapped.current = true
     }
   }, [])
 
   useEffect(() => {
-    if (!rive) return
+    if (skipCapture || !rive) return
 
     let attempts = 0
     let rafId: number
@@ -62,11 +64,24 @@ export default function RiveThumbnail({ fileUrl }: Props) {
 
     rafId = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafId)
-  }, [rive, tryCapture])
+  }, [rive, tryCapture, skipCapture])
 
+  const bg = bgColor || 'transparent'
+
+  // Custom thumbnail image
+  if (thumbnailUrl) {
+    return (
+      <div className="absolute inset-0 w-full h-full" style={{ background: bg }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={thumbnailUrl} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover' }} />
+      </div>
+    )
+  }
+
+  // Canvas snapshot fallback
   return (
-    <div className="absolute inset-0 w-full h-full">
-      {/* Live canvas — visible until snapshot is ready, then hidden */}
+    <div className="absolute inset-0 w-full h-full" style={{ background: bg }}>
+      {/* Live canvas — visible until snapshot ready */}
       <div
         ref={containerRef}
         className="absolute inset-0 w-full h-full"
@@ -75,18 +90,11 @@ export default function RiveThumbnail({ fileUrl }: Props) {
         <RiveComponent className="w-full h-full" />
       </div>
 
-      {/* Static snapshot */}
       {snapshot && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={snapshot}
-          alt=""
-          className="absolute inset-0 w-full h-full"
-          style={{ objectFit: 'cover' }}
-        />
+        <img src={snapshot} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover' }} />
       )}
 
-      {/* Shimmer before first render */}
       {!snapshot && !rive && (
         <div className="absolute inset-0 bg-zinc-900 animate-pulse" />
       )}
