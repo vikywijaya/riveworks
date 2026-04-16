@@ -12,6 +12,18 @@ interface DataPanelProps {
   onArtboardChange: (name: string) => void
 }
 
+const mono = { fontFamily: "'DM Mono', monospace" }
+
+// Type tag colors — muted, not garish
+const typeColors: Record<string, { fg: string; bg: string }> = {
+  boolean: { fg: '#68d391', bg: 'rgba(104,211,145,0.08)' },
+  trigger:  { fg: '#f6ad55', bg: 'rgba(246,173,85,0.08)' },
+  string:   { fg: '#76e4f7', bg: 'rgba(118,228,247,0.08)' },
+  color:    { fg: '#f687b3', bg: 'rgba(246,135,179,0.08)' },
+  enum:     { fg: '#b794f4', bg: 'rgba(183,148,244,0.08)' },
+  number:   { fg: '#63b3ed', bg: 'rgba(99,179,237,0.08)' },
+}
+
 export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }: DataPanelProps) {
   const [overrides, setOverrides] = useState<Record<string, DataBindingVar['value']>>({})
 
@@ -72,12 +84,25 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
     [riveRef]
   )
 
+  const panelStyle: React.CSSProperties = {
+    width: 320,
+    minWidth: 320,
+    height: '100%',
+    background: 'var(--bg-card)',
+    borderLeft: '1px solid var(--border)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  }
+
   if (!data) {
     return (
-      <div className="data-panel">
-        <div className="data-panel-header">Data Bindings</div>
-        <div className="data-panel-body">
-          <div className="loading"><div className="spinner" />Loading…</div>
+      <div style={panelStyle}>
+        <div style={{ padding: '0 16px', height: 44, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Data Bindings</span>
+        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>Loading…</span>
         </div>
       </div>
     )
@@ -91,9 +116,7 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
     let key: string
     if (v.source === 'viewmodel') {
       const base = v.instanceName ?? v.viewModelName ?? 'ViewModel'
-      key = v.nestedPropPath?.length
-        ? `${v.nestedPropPath.join('.')} (${base})`
-        : base
+      key = v.nestedPropPath?.length ? `${v.nestedPropPath.join('.')} (${base})` : base
     } else {
       key = v.stateMachineName ?? 'State Machine'
     }
@@ -102,34 +125,55 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
   }
 
   return (
-    <div className="data-panel">
-      <div className="data-panel-header">
-        Data Bindings
-        {total > 0 && <span className="count">{total}</span>}
+    <div style={panelStyle}>
+      {/* Header */}
+      <div style={{ padding: '0 16px', height: 44, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <span style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Data Bindings</span>
+        {total > 0 && (
+          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)' }}>{total}</span>
+        )}
       </div>
 
-      <div className="data-panel-body">
-        {data.artboards.length > 0 && (
-          <div className="artboard-tabs">
-            {data.artboards.map((ab) => (
+      {/* Artboard tabs */}
+      {data.artboards.length > 1 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '10px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          {data.artboards.map((ab) => {
+            const active = (selectedArtboard ?? data.artboards[0]?.name) === ab.name
+            return (
               <button
                 key={ab.name}
-                className={`artboard-tab ${(selectedArtboard ?? data.artboards[0]?.name) === ab.name ? 'active' : ''}`}
                 onClick={() => onArtboardChange(ab.name)}
+                style={{
+                  ...mono,
+                  fontSize: 10,
+                  padding: '3px 10px',
+                  background: active ? 'var(--ink)' : 'transparent',
+                  color: active ? 'var(--bg)' : 'var(--ink-dim)',
+                  border: '1px solid',
+                  borderColor: active ? 'var(--ink)' : 'var(--border)',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  transition: 'all 0.15s',
+                }}
               >
                 {ab.name}
               </button>
-            ))}
-          </div>
-        )}
+            )
+          })}
+        </div>
+      )}
 
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {total === 0 && (
-          <div className="empty-section" style={{ margin: '24px 20px' }}>
-            No data binding variables found.
-            <br />
-            <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
-              Expected: boolean, number, trigger, enum, color, or string properties.
-            </span>
+          <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+            <p style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', lineHeight: 1.7 }}>
+              No data binding variables found.
+            </p>
+            <p style={{ ...mono, fontSize: 10, color: 'var(--border)', marginTop: 6, lineHeight: 1.7 }}>
+              Expected: boolean, number, trigger,<br />enum, color, or string
+            </p>
           </div>
         )}
 
@@ -138,13 +182,9 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
           const firstVar = items[0]
           const isTopLevelBound = firstVar?.isBoundInstance === true && !firstVar?.nestedPropPath
           const isVM = firstVar?.source === 'viewmodel'
+          const badge = isTopLevelBound ? 'main' : isVM ? 'vm' : 'sm'
           return (
-            <CollapsibleSection
-              key={key}
-              title={key}
-              count={items.length}
-              badge={isTopLevelBound ? 'main' : isVM ? 'vm' : 'sm'}
-            >
+            <CollapsibleSection key={key} title={key} count={items.length} badge={badge}>
               {items.map((v, i) => {
                 const overrideKey = `${v.instanceName ?? v.viewModelName ?? ''}::${v.name}`
                 return (
@@ -164,6 +204,8 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
   )
 }
 
+// ─── VarRow ───────────────────────────────────────────────────────────────────
+
 interface VarRowProps {
   variable: DataBindingVar
   overrideValue?: DataBindingVar['value']
@@ -172,96 +214,133 @@ interface VarRowProps {
 
 function VarRow({ variable: v, overrideValue, onChange }: VarRowProps) {
   const currentValue = overrideValue !== undefined ? overrideValue : v.value
+  const col = typeColors[v.type] ?? { fg: '#888580', bg: 'transparent' }
 
   return (
-    <div className="data-item">
-      <div className="data-item-left">
-        <span className={`type-tag ${v.type}`}>{v.type}</span>
-        <div className="data-item-meta">
-          <span className="data-item-name">{v.name}</span>
-          {v.source === 'viewmodel' && v.viewModelName && (
-            <span className="data-item-source">{v.viewModelName}</span>
-          )}
-          {v.source === 'statemachine' && v.stateMachineName && (
-            <span className="data-item-source">{v.stateMachineName}</span>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '7px 14px',
+      gap: 8,
+      borderBottom: '1px solid var(--border-dim)',
+      minHeight: 40,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+        {/* Type tag */}
+        <span style={{
+          ...mono,
+          fontSize: 9,
+          padding: '2px 6px',
+          background: col.bg,
+          color: col.fg,
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+        }}>
+          {v.type}
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+          <span style={{ ...mono, fontSize: 11, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {v.name}
+          </span>
+          {(v.source === 'viewmodel' ? v.viewModelName : v.stateMachineName) && (
+            <span style={{ ...mono, fontSize: 9, color: 'var(--ink-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {v.source === 'viewmodel' ? v.viewModelName : v.stateMachineName}
+            </span>
           )}
         </div>
       </div>
 
-      <div className="data-item-control">
-        {v.type === 'boolean' && (
-          <BooleanToggle value={Boolean(currentValue)} onChange={(val) => onChange(val)} />
-        )}
-        {v.type === 'trigger' && (
-          <TriggerButton onClick={() => onChange(undefined)} />
-        )}
-        {v.type === 'enum' && (
-          <EnumSelect
-            value={String(currentValue ?? '')}
-            options={v.enumValues ?? []}
-            onChange={(val) => onChange(val)}
-          />
-        )}
-        {v.type === 'color' && (
-          <ColorPicker
-            value={typeof currentValue === 'string' ? currentValue : '#000000'}
-            onChange={(val) => onChange(val)}
-          />
-        )}
-        {v.type === 'number' && (
-          <NumberInput
-            value={typeof currentValue === 'number' ? currentValue : Number(currentValue ?? 0)}
-            onChange={(val) => onChange(val)}
-          />
-        )}
-        {v.type === 'string' && (
-          <StringInput
-            value={typeof currentValue === 'string' ? currentValue : ''}
-            onChange={(val: string) => onChange(val)}
-          />
-        )}
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        {v.type === 'boolean' && <BooleanToggle value={Boolean(currentValue)} onChange={onChange} />}
+        {v.type === 'trigger' && <TriggerButton onClick={() => onChange(undefined)} />}
+        {v.type === 'enum' && <EnumSelect value={String(currentValue ?? '')} options={v.enumValues ?? []} onChange={onChange} />}
+        {v.type === 'color' && <ColorPicker value={typeof currentValue === 'string' ? currentValue : '#000000'} onChange={onChange} />}
+        {v.type === 'number' && <NumberInput value={typeof currentValue === 'number' ? currentValue : Number(currentValue ?? 0)} onChange={onChange} />}
+        {v.type === 'string' && <StringInput value={typeof currentValue === 'string' ? currentValue : ''} onChange={(v: string) => onChange(v)} />}
       </div>
     </div>
   )
 }
 
+// ─── Controls ─────────────────────────────────────────────────────────────────
+
 function BooleanToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
-      className={`bool-toggle ${value ? 'on' : 'off'}`}
       onClick={() => onChange(!value)}
-      title={String(value)}
+      style={{
+        ...mono,
+        fontSize: 10,
+        padding: '3px 10px',
+        background: value ? 'rgba(104,211,145,0.12)' : 'transparent',
+        color: value ? 'var(--tag-bool)' : 'var(--ink-dim)',
+        border: '1px solid',
+        borderColor: value ? 'rgba(104,211,145,0.25)' : 'var(--border)',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        minWidth: 52,
+        textAlign: 'center' as const,
+      }}
     >
-      <span className="bool-toggle-thumb" />
-      <span className="bool-toggle-label">{value ? 'true' : 'false'}</span>
+      {value ? 'true' : 'false'}
     </button>
   )
 }
 
 function TriggerButton({ onClick }: { onClick: () => void }) {
   const [fired, setFired] = useState(false)
-
   const handleClick = () => {
     onClick()
     setFired(true)
     setTimeout(() => setFired(false), 600)
   }
-
   return (
-    <button className={`trigger-btn ${fired ? 'fired' : ''}`} onClick={handleClick}>
-      {fired ? 'Fired!' : 'Fire'}
+    <button
+      onClick={handleClick}
+      style={{
+        ...mono,
+        fontSize: 10,
+        padding: '3px 10px',
+        background: fired ? 'rgba(246,173,85,0.15)' : 'transparent',
+        color: fired ? 'var(--tag-trigger)' : 'var(--ink-dim)',
+        border: '1px solid',
+        borderColor: fired ? 'rgba(246,173,85,0.3)' : 'var(--border)',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        minWidth: 52,
+        textAlign: 'center' as const,
+      }}
+    >
+      {fired ? 'fired' : 'fire'}
     </button>
   )
 }
 
 function EnumSelect({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
   if (options.length === 0) {
-    return <span className="data-item-value">{value || '—'}</span>
+    return <span style={{ ...mono, fontSize: 11, color: '#888580' }}>{value || '—'}</span>
   }
   return (
-    <select className="var-select" value={value} onChange={(e) => onChange(e.target.value)}>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        ...mono,
+        fontSize: 11,
+        color: 'var(--tag-enum)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        padding: '3px 8px',
+        outline: 'none',
+        cursor: 'pointer',
+        maxWidth: 120,
+      }}
+    >
       {options.map((o) => (
-        <option key={o} value={o}>{o}</option>
+        <option key={o} value={o} style={{ background: '#161616' }}>{o}</option>
       ))}
     </select>
   )
@@ -269,17 +348,28 @@ function EnumSelect({ value, options, onChange }: { value: string; options: stri
 
 function NumberInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
-    <div className="number-slider-control">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: 120 }}>
       <input
-        className="number-slider"
         type="range"
         min={0}
         max={100}
         step={0.1}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{
+          flex: 1,
+          WebkitAppearance: 'none',
+          appearance: 'none',
+          height: 2,
+          background: `linear-gradient(to right, #63b3ed ${value}%, #252525 ${value}%)`,
+          outline: 'none',
+          cursor: 'pointer',
+          borderRadius: 0,
+        }}
       />
-      <span className="number-slider-value">{typeof value === 'number' ? value.toFixed(1) : value}</span>
+      <span style={{ ...mono, fontSize: 10, color: 'var(--tag-number)', minWidth: 32, textAlign: 'right' as const }}>
+        {value.toFixed(1)}
+      </span>
     </div>
   )
 }
@@ -288,12 +378,21 @@ function StringInput({ value, onChange }: { value: string; onChange: (v: string)
   const [draft, setDraft] = useState(value)
   return (
     <input
-      className="string-input"
       type="text"
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => onChange(draft)}
       onKeyDown={(e) => { if (e.key === 'Enter') onChange(draft) }}
+      style={{
+        ...mono,
+        fontSize: 11,
+        color: 'var(--tag-string)',
+        background: 'transparent',
+        border: '1px solid var(--border)',
+        padding: '3px 8px',
+        outline: 'none',
+        width: 100,
+      }}
     />
   )
 }
@@ -302,9 +401,20 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (v: string)
   const inputRef = useRef<HTMLInputElement>(null)
   const hexOnly = value.length > 7 ? value.slice(0, 7) : value
   return (
-    <div className="color-control" onClick={() => inputRef.current?.click()}>
-      <span className="color-swatch" style={{ background: value }} title={value} />
-      <span className="data-item-value">{hexOnly}</span>
+    <div
+      onClick={() => inputRef.current?.click()}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        cursor: 'pointer',
+        border: '1px solid var(--border)',
+        padding: '3px 8px',
+        position: 'relative',
+      }}
+    >
+      <span style={{ width: 14, height: 14, background: value, display: 'inline-block', flexShrink: 0, border: '1px solid rgba(128,128,128,0.2)' }} />
+      <span style={{ ...mono, fontSize: 10, color: 'var(--tag-color)' }}>{hexOnly}</span>
       <input
         ref={inputRef}
         type="color"
@@ -316,26 +426,48 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (v: string)
   )
 }
 
-function CollapsibleSection({
-  title, count, badge, children,
-}: {
+// ─── CollapsibleSection ───────────────────────────────────────────────────────
+
+const badgeColors: Record<string, { fg: string; border: string }> = {
+  main: { fg: '#63b3ed', border: 'rgba(99,179,237,0.2)' },
+  vm:   { fg: '#9a75ea', border: 'rgba(154,117,234,0.2)' },
+  sm:   { fg: '#68d391', border: 'rgba(104,211,145,0.2)' },
+}
+
+function CollapsibleSection({ title, count, badge, children }: {
   title: string
   count: number
   badge?: 'main' | 'vm' | 'sm'
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(true)
+  const bc = badge ? badgeColors[badge] : null
+
   return (
-    <div className="data-section">
-      <div className="data-section-header" onClick={() => setOpen(!open)}>
-        <span className="data-section-title">
-          {title}
-          {badge && <span className={`vm-badge vm-badge-${badge}`}>{badge === 'main' ? 'main' : badge === 'vm' ? 'vm' : 'sm'}</span>}
-          <span style={{ opacity: 0.5, fontWeight: 400 }}> ({count})</span>
-        </span>
-        <span className={`chevron ${open ? 'open' : ''}`}>&#9654;</span>
+    <div style={{ borderBottom: '1px solid var(--border-dim)' }}>
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 14px',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>{title}</span>
+          {bc && badge && (
+            <span style={{ ...mono, fontSize: 9, padding: '1px 5px', color: bc.fg, border: `1px solid ${bc.border}`, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {badge}
+            </span>
+          )}
+          <span style={{ ...mono, fontSize: 9, color: 'var(--ink-faint)' }}>({count})</span>
+        </div>
+        <span style={{ ...mono, fontSize: 9, color: 'var(--ink-faint)', transition: 'transform 0.15s', display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
       </div>
-      {open && <div className="data-section-content">{children}</div>}
+      {open && <div>{children}</div>}
     </div>
   )
 }

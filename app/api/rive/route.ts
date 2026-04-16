@@ -6,47 +6,79 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const snapshot = await adminDb
-    .collection('rives')
-    .orderBy('createdAt', 'desc')
-    .get()
+  try {
+    const snapshot = await adminDb
+      .collection('rives')
+      .orderBy('createdAt', 'desc')
+      .get()
 
-  const files = snapshot.docs.map(doc => {
-    return {
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
-    }
-  })
+    const files = snapshot.docs.map(doc => {
+      return {
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
+      }
+    })
 
-  return NextResponse.json(files)
+    return NextResponse.json(files)
+  } catch (err) {
+    console.error('GET /api/rive error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { title, description, fileData, originalName } = body
+  const { title, description, fileData, originalName, fileUrl: externalUrl, thumbnailData, thumbnailName, bgColor } = body
 
-  if (!title || !fileData) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  if (!title) {
+    return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   }
 
-  // Upload file to Vercel Blob
-  const buffer = Buffer.from(fileData, 'base64')
-  const blob = await put(`rives/${Date.now()}_${originalName}`, buffer, {
-    access: 'public',
-    contentType: 'application/octet-stream',
-  })
+  let fileUrl: string
+  let blobPathname: string | null = null
 
-  // Store metadata + blob URL in Firestore
+  if (externalUrl) {
+    fileUrl = externalUrl
+  } else if (fileData && originalName) {
+    const buffer = Buffer.from(fileData, 'base64')
+    const blob = await put(`rives/${Date.now()}_${originalName}`, buffer, {
+      access: 'public',
+      contentType: 'application/octet-stream',
+    })
+    fileUrl = blob.url
+    blobPathname = blob.pathname
+  } else {
+    return NextResponse.json({ error: 'Provide either a file or a URL' }, { status: 400 })
+  }
+
+  // Upload custom thumbnail image if provided
+  let thumbnailUrl: string | null = null
+  let thumbnailBlobPathname: string | null = null
+  if (thumbnailData && thumbnailName) {
+    const ext = thumbnailName.split('.').pop() ?? 'jpg'
+    const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
+    const thumbBuffer = Buffer.from(thumbnailData, 'base64')
+    const thumbBlob = await put(`thumbnails/${Date.now()}_${thumbnailName}`, thumbBuffer, {
+      access: 'public',
+      contentType: mimeType,
+    })
+    thumbnailUrl = thumbBlob.url
+    thumbnailBlobPathname = thumbBlob.pathname
+  }
+
   const docRef = await adminDb.collection('rives').add({
     title,
     description: description || null,
-    originalName,
-    fileUrl: blob.url,
-    blobPathname: blob.pathname,
+    originalName: originalName ?? new URL(fileUrl).pathname.split('/').pop() ?? 'external.riv',
+    fileUrl,
+    blobPathname,
+    thumbnailUrl,
+    thumbnailBlobPathname,
+    bgColor: bgColor || null,
     createdAt: new Date(),
     updatedAt: new Date(),
   })
 
-  return NextResponse.json({ id: docRef.id, title, description, originalName, fileUrl: blob.url })
+  return NextResponse.json({ id: docRef.id, title, description, fileUrl, thumbnailUrl })
 }

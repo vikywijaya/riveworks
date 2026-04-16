@@ -1,6 +1,8 @@
 import { adminDb } from '@/lib/firebase-admin'
 import RiveCard from '@/components/RiveCard'
+import Logo from '@/components/Logo'
 import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,109 +19,105 @@ export default async function HomePage() {
       title: doc.data().title as string,
       description: (doc.data().description ?? null) as string | null,
       fileUrl: doc.data().fileUrl as string,
+      thumbnailUrl: (doc.data().thumbnailUrl ?? null) as string | null,
+      bgColor: (doc.data().bgColor ?? null) as string | null,
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
     }))
 
-  return (
-    <div className="min-h-screen bg-dark-bg">
-      {/* Background mesh gradient */}
-      <div className="fixed inset-0 bg-gradient-mesh pointer-events-none" />
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent-purple/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-blue/5 rounded-full blur-3xl" />
-      </div>
+  const year = new Date().getFullYear()
 
-      <div className="relative z-10">
+  return (
+    <div className="min-h-screen bg-dark-bg text-ink">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
+
         {/* Header */}
-        <header className="border-b border-dark-border bg-dark-bg/80 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-purple to-accent-blue flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-white"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="text-xl font-bold text-white tracking-tight">
-                Rive<span className="text-accent-purple">Works</span>
-              </span>
-            </div>
+        <header className="flex items-center justify-between py-7 border-b border-dark-border">
+          <Logo height={28} className="text-ink" />
+          <nav className="flex items-center gap-6">
+            <span
+              className="text-xs font-mono text-ink-dim tracking-[0.15em] uppercase"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              {riveFiles.length.toString().padStart(2, '0')} works
+            </span>
+            <ThemeToggle />
             <Link
               href="/admin"
-              className="text-sm text-zinc-400 hover:text-white transition-colors duration-200 px-3 py-1.5 rounded-lg border border-dark-border hover:border-zinc-600"
+              className="text-xs text-ink-dim hover:text-ink transition-colors duration-150 tracking-wide"
+              style={{ fontFamily: "'DM Mono', monospace" }}
             >
-              Admin
+              admin ↗
             </Link>
-          </div>
+          </nav>
         </header>
 
-        {/* Hero section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 bg-accent-purple/10 border border-accent-purple/20 rounded-full px-4 py-1.5 text-sm text-accent-purple mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-purple animate-pulse" />
-            Interactive Animations
-          </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            Motion{' '}
-            <span className="bg-gradient-to-r from-accent-purple via-accent-blue to-accent-cyan bg-clip-text text-transparent">
-              Portfolio
-            </span>
-          </h1>
-          <p className="text-lg text-zinc-400 max-w-2xl mx-auto mb-8">
-            A curated collection of interactive Rive animations — hover, click,
-            and explore each piece.
-          </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
-            <span>{riveFiles.length}</span>
-            <span>{riveFiles.length === 1 ? 'animation' : 'animations'}</span>
+        {/* Hero */}
+        <section className="pt-16 pb-14">
+          <div className="flex flex-col gap-4 max-w-3xl">
+            <p
+              className="text-xs text-ink-dim tracking-[0.2em] uppercase"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              Motion Portfolio — {year}
+            </p>
+            <h1
+              className="text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.03em] text-ink font-normal"
+              style={{ fontFamily: "'Instrument Serif', serif" }}
+            >
+              Interactive<br />
+              <em className="not-italic" style={{ color: '#888580' }}>Rive</em>{' '}
+              Animations
+            </h1>
+            <p className="text-sm text-ink-dim max-w-sm leading-relaxed mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              A curated set of motion pieces — click to inspect states, variables, and transitions.
+            </p>
           </div>
         </section>
 
-        {/* Gallery grid */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+        {/* Divider row */}
+        <div className="flex items-center gap-6 pb-10 border-t border-dark-border pt-6">
+          <span
+            className="text-[10px] text-ink-faint tracking-[0.25em] uppercase"
+            style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+            Gallery
+          </span>
+          <div className="flex-1 h-px bg-dark-border" />
+        </div>
+
+        {/* Gallery */}
+        <main className="pb-28">
           {riveFiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-32 animate-fade-in">
-              <div className="w-20 h-20 rounded-2xl bg-dark-card border border-dark-border flex items-center justify-center mb-6">
-                <svg
-                  className="w-10 h-10 text-zinc-600"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 4.5v15m7.5-7.5h-15"
-                  />
-                </svg>
+            <div className="flex flex-col items-center justify-center py-40 gap-6 text-center">
+              <div
+                className="text-[10px] tracking-[0.25em] uppercase text-ink-faint"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                Empty
               </div>
-              <h2 className="text-2xl font-semibold text-zinc-300 mb-3">
-                No animations yet
-              </h2>
-              <p className="text-zinc-500 text-center max-w-sm mb-8">
-                The gallery is empty. Head to the admin dashboard to upload your
-                first Rive file.
+              <p className="text-2xl text-ink-dim" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                Nothing here yet
               </p>
               <Link
                 href="/admin"
-                className="px-6 py-2.5 rounded-xl bg-accent-purple hover:bg-accent-purple/90 text-white font-medium transition-all duration-200 hover:shadow-lg hover:shadow-accent-purple/25"
+                className="mt-2 text-xs text-ink-dim border border-dark-border hover:border-ink-faint hover:text-ink px-5 py-2.5 transition-colors duration-150"
+                style={{ fontFamily: "'DM Mono', monospace" }}
               >
-                Go to Admin
+                Open Admin →
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
-              {riveFiles.map((file) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-dark-border border border-dark-border">
+              {riveFiles.map((file, i) => (
                 <RiveCard
                   key={file.id}
                   id={file.id}
                   title={file.title}
                   description={file.description}
                   fileUrl={file.fileUrl}
+                  thumbnailUrl={file.thumbnailUrl}
+                  bgColor={file.bgColor}
+                  index={i}
                 />
               ))}
             </div>
@@ -127,19 +125,16 @@ export default async function HomePage() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-dark-border">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded bg-gradient-to-br from-accent-purple to-accent-blue" />
-              <span className="text-sm font-medium text-zinc-400">
-                RiveWorks
-              </span>
-            </div>
-            <p className="text-xs text-zinc-600">
-              Built with Next.js &amp; Rive
-            </p>
-          </div>
+        <footer className="border-t border-dark-border py-7 flex items-center justify-between">
+          <Logo height={16} className="text-ink-faint" />
+          <p
+            className="text-[10px] text-ink-faint tracking-[0.15em] uppercase"
+            style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+            Built with Next.js &amp; Rive
+          </p>
         </footer>
+
       </div>
     </div>
   )

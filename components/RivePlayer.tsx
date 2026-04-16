@@ -1,22 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas'
+import { useState, useEffect } from 'react'
+import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 
 interface RivePlayerProps {
   fileUrl: string
   className?: string
+  playing?: boolean
 }
 
-export default function RivePlayer({ fileUrl, className }: RivePlayerProps) {
+export default function RivePlayer({ fileUrl, className, playing = false }: RivePlayerProps) {
   const [loaded, setLoaded] = useState(false)
 
-  const { RiveComponent } = useRive({
+  const { RiveComponent, rive } = useRive({
     src: fileUrl,
     autoplay: true,
     layout: new Layout({ fit: Fit.Cover, alignment: Alignment.TopCenter }),
     onLoad: () => setLoaded(true),
   })
+
+  useEffect(() => {
+    if (!rive) return
+    if (playing) {
+      rive.play()
+    } else {
+      rive.pause()
+    }
+  }, [rive, playing])
 
   if (!fileUrl) return null
 

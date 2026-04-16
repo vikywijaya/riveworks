@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,8 +23,7 @@ export default function LoginPage() {
       })
 
       if (res.ok) {
-        router.push('/admin')
-        router.refresh()
+        window.location.href = '/admin'
       } else {
         const data = await res.json()
         setError(data.error || 'Invalid password')
@@ -35,105 +35,74 @@ export default function LoginPage() {
     }
   }
 
+  const monoStyle = { fontFamily: "'DM Mono', monospace" }
+
   return (
-    <div className="min-h-screen bg-dark-bg flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-accent-purple/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-accent-blue/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-dark-bg text-ink flex">
+      {/* Left — decorative column */}
+      <div className="hidden lg:flex w-1/2 flex-col justify-between p-16 border-r border-dark-border">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-ink-faint tracking-[0.2em] uppercase" style={monoStyle}>
+            kidastudio / admin
+          </span>
+          <ThemeToggle />
+        </div>
+        <div>
+          <p className="text-[clamp(2.5rem,4vw,3.5rem)] leading-[0.95] tracking-[-0.03em] text-ink font-normal mb-4"
+            style={{ fontFamily: "'Instrument Serif', serif" }}>
+            Motion<br />
+            <em className="not-italic text-ink-dim">Portfolio</em>
+          </p>
+          <p className="text-xs text-ink-faint max-w-xs" style={monoStyle}>
+            Upload and curate your interactive Rive animation collection.
+          </p>
+        </div>
+        <div className="text-[10px] text-ink-faint" style={monoStyle}>
+          © {new Date().getFullYear()}
+        </div>
+      </div>
 
-      <div className="relative w-full max-w-md animate-slide-up">
-        {/* Card */}
-        <div className="bg-dark-card border border-dark-border rounded-2xl p-8 shadow-2xl shadow-black/50">
-          {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-purple to-accent-blue flex items-center justify-center mb-4 shadow-lg shadow-accent-purple/30">
-              <svg
-                className="w-7 h-7 text-white"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Rive<span className="text-accent-purple">Works</span>
-            </h1>
-            <p className="text-zinc-500 text-sm mt-1">Admin Dashboard</p>
-          </div>
+      {/* Right — login form */}
+      <div className="flex-1 flex items-center justify-center px-8">
+        <div className="w-full max-w-sm">
+          <p className="text-[10px] text-ink-faint tracking-[0.2em] uppercase mb-10" style={monoStyle}>
+            Authentication required
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-zinc-300 mb-2"
-              >
-                Password
+              <label htmlFor="password" className="block text-[10px] text-ink-faint uppercase tracking-[0.15em] mb-1.5" style={monoStyle}>
+                password
               </label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter admin password"
+                placeholder="••••••••"
                 required
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl bg-dark-bg border border-dark-border text-white placeholder-zinc-600 focus:outline-none focus:border-accent-purple focus:ring-1 focus:ring-accent-purple/50 transition-all duration-200"
+                className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border text-ink placeholder-ink-faint focus:outline-none focus:border-ink-dim transition-colors duration-150 text-sm"
+                style={monoStyle}
               />
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
-                <svg
-                  className="w-4 h-4 flex-shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                {error}
-              </div>
+              <p className="text-[11px] text-red-400 border border-red-900/40 px-3 py-2" style={monoStyle}>{error}</p>
             )}
 
             <button
               type="submit"
               disabled={loading || !password}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-accent-purple to-accent-blue text-white font-semibold hover:opacity-90 active:opacity-80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent-purple/20 hover:shadow-accent-purple/30 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-ink text-dark-bg text-xs tracking-wider hover:bg-ink/90 active:bg-ink/80 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
+              style={monoStyle}
             >
-              {loading ? (
-                <>
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
+              {loading ? 'SIGNING IN…' : 'SIGN IN'}
             </button>
           </form>
 
-          <p className="text-center text-xs text-zinc-600 mt-6">
-            Protected by JWT authentication
+          <p className="text-[10px] text-ink-faint mt-8" style={monoStyle}>
+            ← <a href="/" className="hover:text-ink transition-colors">back to gallery</a>
           </p>
         </div>
       </div>
