@@ -8,6 +8,8 @@ import type { RiveFileData } from '@/lib/extractRiveData'
 
 type RendererType = 'canvas' | 'rive'
 
+const mono = { fontFamily: "'DM Mono', monospace" }
+
 // ─── CanvasRivePlayer ─────────────────────────────────────────────────────────
 
 interface RivePlayerProps {
@@ -66,7 +68,7 @@ function WebGL2RivePlayer({ buffer, artboard, stateMachine, onDataExtracted, onS
   return <RiveComponent style={{ width: '100%', height: '100%' }} />
 }
 
-// ─── RivePreview (mirrors rive-ray RivePreview exactly) ───────────────────────
+// ─── RivePreview ──────────────────────────────────────────────────────────────
 
 interface RivePreviewProps {
   buffer: ArrayBuffer
@@ -77,7 +79,7 @@ interface RivePreviewProps {
 }
 
 export function RivePreview({ buffer, artboard, onDataExtracted, onRiveReady }: RivePreviewProps) {
-  const [renderer, setRenderer] = useState<RendererType>('rive') // default = rive (WebGL2)
+  const [renderer, setRenderer] = useState<RendererType>('rive')
   const [availableSMs, setAvailableSMs] = useState<string[]>([])
   const [selectedSM, setSelectedSM] = useState<string | undefined>(undefined)
 
@@ -91,15 +93,16 @@ export function RivePreview({ buffer, artboard, onDataExtracted, onRiveReady }: 
 
   const handleRendererChange = (r: RendererType) => {
     setRenderer(r)
-    onRiveReady(null) // clear stale ref while remounting
+    onRiveReady(null)
   }
 
   const Player = renderer === 'canvas' ? CanvasRivePlayer : WebGL2RivePlayer
   const playerKey = `${renderer}-${selectedSM ?? 'none'}-${artboard ?? 'default'}`
 
   return (
-    <div className="preview-wrapper">
-      <div className="preview-canvas-area">
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+      {/* Canvas area */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Player
           key={playerKey}
           buffer={buffer}
@@ -111,38 +114,71 @@ export function RivePreview({ buffer, artboard, onDataExtracted, onRiveReady }: 
         />
       </div>
 
-      <div className="renderer-toolbar">
-        {availableSMs.length > 0 && (
-          <div className="toolbar-group">
-            <span className="toolbar-label">State Machine</span>
+      {/* Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 24px',
+          height: '44px',
+          background: 'var(--bg)',
+          borderTop: '1px solid var(--border)',
+          flexShrink: 0,
+        }}
+      >
+        {/* State machine selector */}
+        {availableSMs.length > 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>SM</span>
             <select
-              className="sm-select"
               value={selectedSM ?? ''}
               onChange={(e) => setSelectedSM(e.target.value)}
+              style={{
+                ...mono,
+                fontSize: 11,
+                color: 'var(--ink-dim)',
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                padding: '3px 8px',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
             >
               {availableSMs.map((sm) => (
-                <option key={sm} value={sm}>{sm}</option>
+                <option key={sm} value={sm} style={{ background: 'var(--bg-card)' }}>{sm}</option>
               ))}
             </select>
           </div>
+        ) : (
+          <div />
         )}
-        {availableSMs.length === 0 && <div />}
 
-        <div className="toolbar-group">
-          <span className="toolbar-label">Renderer</span>
-          <div className="renderer-pill">
-            <button
-              className={`pill-option ${renderer === 'canvas' ? 'active' : ''}`}
-              onClick={() => handleRendererChange('canvas')}
-            >
-              Canvas
-            </button>
-            <button
-              className={`pill-option ${renderer === 'rive' ? 'active' : ''}`}
-              onClick={() => handleRendererChange('rive')}
-            >
-              Rive
-            </button>
+        {/* Renderer toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Renderer</span>
+          <div style={{ display: 'flex', border: '1px solid var(--border)' }}>
+            {(['canvas', 'rive'] as RendererType[]).map((r, i) => (
+              <button
+                key={r}
+                onClick={() => handleRendererChange(r)}
+                style={{
+                  ...mono,
+                  fontSize: 10,
+                  padding: '3px 12px',
+                  background: renderer === r ? 'var(--ink)' : 'transparent',
+                  color: renderer === r ? 'var(--bg)' : 'var(--ink-dim)',
+                  border: 'none',
+                  borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {r}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -150,7 +186,7 @@ export function RivePreview({ buffer, artboard, onDataExtracted, onRiveReady }: 
   )
 }
 
-// ─── Loader: fetch URL → ArrayBuffer → RivePreview ────────────────────────────
+// ─── Loader ───────────────────────────────────────────────────────────────────
 
 interface RivePlayerDetailProps {
   fileUrl: string
@@ -172,11 +208,30 @@ export default function RivePlayerDetail({ fileUrl, artboard, onDataExtracted, o
 
   if (!buffer) {
     return (
-      <div className="preview-wrapper">
-        <div className="preview-canvas-area">
-          <div className="loading"><div className="spinner" /></div>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+        {/* canvas skeleton */}
+        <div style={{ flex: 1, background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(90deg, transparent 0%, var(--border) 50%, transparent 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'rive-shimmer 1.4s ease-in-out infinite',
+          }} />
         </div>
-        <div className="renderer-toolbar"><div /><div /></div>
+        {/* toolbar skeleton */}
+        <div style={{
+          height: 44,
+          flexShrink: 0,
+          borderTop: '1px solid var(--border)',
+          background: 'var(--bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 24px',
+        }}>
+          <div style={{ width: 80, height: 8, background: 'var(--border)', borderRadius: 0 }} />
+          <div style={{ width: 100, height: 8, background: 'var(--border)', borderRadius: 0 }} />
+        </div>
       </div>
     )
   }

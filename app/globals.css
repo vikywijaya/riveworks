@@ -1,25 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* rive-ray CSS variables — used by DataPanel and RivePreview */
+/* ── Theme tokens ── */
+:root,
+html[data-theme="dark"] {
+  --bg:          #0e0e0e;
+  --bg-card:     #161616;
+  --bg-hover:    #1c1c1c;
+  --border:      #252525;
+  --border-dim:  #1a1a1a;
+  --ink:         #f0ede8;
+  --ink-dim:     #888580;
+  --ink-faint:   #3a3835;
+
+  /* DataPanel / preview */
+  --surface:        #0c0c0c;
+  --surface-hover:  #1a1a1a;
+  --tag-bool:    #68d391;
+  --tag-number:  #63b3ed;
+  --tag-trigger: #f6ad55;
+  --tag-string:  #76e4f7;
+  --tag-color:   #f687b3;
+  --tag-enum:    #b794f4;
+}
+
+html[data-theme="light"] {
+  --bg:          #f5f2ed;
+  --bg-card:     #ede9e2;
+  --bg-hover:    #e5e0d7;
+  --border:      #d4cfc7;
+  --border-dim:  #ddd9d1;
+  --ink:         #1a1816;
+  --ink-dim:     #6b6660;
+  --ink-faint:   #b0aa9f;
+
+  --surface:        #ede9e2;
+  --surface-hover:  #e5e0d7;
+  --tag-bool:    #2f855a;
+  --tag-number:  #2b6cb0;
+  --tag-trigger: #c05621;
+  --tag-string:  #086f83;
+  --tag-color:   #97266d;
+  --tag-enum:    #553c9a;
+}
+
+/* rive-ray legacy vars — kept for DataPanel */
 :root {
   --bg: #0f1116;
-  --surface: #0c0c0c;
-  --surface-hover: #1a1a1a;
   --border: #000000;
   --text: #e3e6ec;
   --text-muted: #959595;
   --accent: #6c5ce7;
   --accent-hover: #7d6ff0;
-  --tag-bool: #00b893;
-  --tag-number: #0984e3;
-  --tag-trigger: #e06f54;
-  --tag-string: #fcca6d;
-  --tag-color: #e84393;
-  --tag-enum: #a19bfd;
   --tag-list: #74b9ff;
   --radius: 10px;
+}
+
+/* ── Skeleton shimmer ── */
+@keyframes rive-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
 /* ── App layout (exact from rive-ray App.css) ── */
@@ -272,8 +315,12 @@
 .data-panel-body::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 body {
-  background-color: #0a0a0f;
-  color: #ededed;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 @layer base {
