@@ -7,6 +7,7 @@ import type { RiveFileData } from '@/lib/extractRiveData'
 import { DataPanel } from '@/components/DataPanel'
 import Logo from '@/components/Logo'
 import ThemeToggle from '@/components/ThemeToggle'
+import { ShareCard } from '@/components/ShareCard'
 
 const RivePlayerDetail = dynamic(() => import('@/components/RivePlayerDetail'), { ssr: false })
 
@@ -17,33 +18,34 @@ interface RiveFile {
   originalName: string
   fileUrl: string
   bgColor: string | null
+  allowEmbed: boolean
+  allowDownload: boolean
   createdAt: string
 }
 
+const mono = { fontFamily: "'DM Mono', monospace" }
+
 function CanvasSkeleton() {
   return (
-    <div className="flex flex-col w-full h-full">
-      <div className="flex-1 bg-dark-bg animate-pulse" />
-      {/* toolbar stub */}
-      <div className="h-11 flex-shrink-0 border-t border-dark-border bg-dark-bg" />
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+      <div style={{ flex: 1, background: 'var(--bg)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+      <div style={{ height: 44, flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--bg-2)' }} />
     </div>
   )
 }
 
 function PanelSkeleton() {
   return (
-    <div className="w-80 flex-shrink-0 border-l border-dark-border bg-dark-card flex flex-col">
-      {/* artboard tabs */}
-      <div className="h-9 border-b border-dark-border flex items-center px-4 gap-2">
-        <div className="h-2 w-16 bg-dark-border animate-pulse" />
-        <div className="h-2 w-12 bg-dark-border animate-pulse" />
+    <div style={{ width: 380, flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--bg-2)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: 44, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8 }}>
+        <div style={{ width: 64, height: 8, background: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <div style={{ width: 24, height: 16, background: 'var(--bg-3)', animation: 'pulse 1.5s ease-in-out infinite' }} />
       </div>
-      {/* rows */}
-      <div className="flex-1 px-4 py-3 space-y-3 overflow-hidden">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <div className="h-2 bg-dark-border animate-pulse rounded-none" style={{ width: `${40 + (i % 3) * 20}%` }} />
-            <div className="h-2 w-12 bg-dark-border animate-pulse" />
+      <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }}>
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ height: 8, background: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite', width: `${40 + (i % 3) * 18}%` }} />
+            <div style={{ height: 8, width: 48, background: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           </div>
         ))}
       </div>
@@ -86,18 +88,13 @@ export default function RiveDetailPage() {
     riveRef.current = null
   }, [])
 
-  const monoStyle = { fontFamily: "'DM Mono', monospace" }
-
   if (!file && !loading) {
     return (
-      <div className="min-h-screen bg-dark-bg flex flex-col items-center justify-center gap-5">
-        <p className="text-ink-dim" style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.4rem' }}>
-          Animation not found
-        </p>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+        <p style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.4rem', color: 'var(--ink-dim)', margin: 0 }}>Animation not found</p>
         <button
           onClick={() => router.push('/')}
-          className="text-[10px] text-ink-faint hover:text-ink-dim tracking-[0.15em] uppercase transition-colors"
-          style={monoStyle}
+          style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.15em', textTransform: 'uppercase', background: 'transparent', border: 0, cursor: 'pointer' }}
         >
           ← back to gallery
         </button>
@@ -106,51 +103,38 @@ export default function RiveDetailPage() {
   }
 
   return (
-    <div className="h-screen bg-dark-bg text-ink flex flex-col overflow-hidden">
+    <div style={{ height: '100vh', background: 'var(--bg)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ── Top bar ── */}
-      <header className="flex items-center justify-between px-6 h-12 border-b border-dark-border flex-shrink-0">
-        <div className="flex items-center gap-5">
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center"
-            title="Back to gallery"
-          >
-            <Logo height={28} className="text-ink opacity-80 hover:opacity-100 transition-opacity" />
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 36px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', flexShrink: 0, height: 60 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <button onClick={() => router.push('/')} style={{ background: 'transparent', border: 0, padding: 0, cursor: 'pointer', color: 'var(--ink)', display: 'flex', alignItems: 'center' }} title="Back to gallery">
+            <Logo height={22} />
           </button>
-          <span className="text-ink-faint" aria-hidden>|</span>
-          <div className="flex items-center gap-2">
-            {loading ? (
-              <div className="h-3 w-32 bg-dark-border animate-pulse" />
-            ) : (
-              <>
-                <span className="text-sm text-ink leading-none" style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
-                  {file!.title}
-                </span>
-                {file!.description && (
-                  <>
-                    <span className="text-ink-faint" aria-hidden>·</span>
-                    <span className="text-xs text-ink-dim truncate max-w-[260px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                      {file!.description}
-                    </span>
-                  </>
-                )}
-              </>
-            )}
-          </div>
+          <span style={{ border: '1px solid var(--accent-line)', color: 'var(--accent)', padding: '4px 9px', ...mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+            Index · v2
+          </span>
+          {!loading && file && (
+            <>
+              <span style={{ color: 'var(--ink-faint)' }}>/</span>
+              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{file.title}</span>
+              {file.description && (
+                <>
+                  <span style={{ color: 'var(--ink-faint)' }}>·</span>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: 'var(--ink-dim)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.description}</span>
+                </>
+              )}
+            </>
+          )}
+          {loading && <div style={{ width: 140, height: 10, background: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />}
         </div>
 
-        <div className="flex items-center gap-5">
-          {loading ? (
-            <div className="h-2.5 w-24 bg-dark-border animate-pulse" />
-          ) : (
-            <span className="text-[10px] text-ink-faint" style={monoStyle}>{file!.originalName}</span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, ...mono, fontSize: 11, color: 'var(--ink-dim)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          {!loading && file && <span style={{ color: 'var(--ink-faint)', fontSize: 10 }}>{file.originalName}</span>}
           <ThemeToggle />
           <button
             onClick={() => setPanelOpen((v) => !v)}
-            className="text-[10px] text-ink-dim hover:text-ink tracking-[0.15em] uppercase transition-colors border border-dark-border px-2.5 py-1 hover:border-ink-faint"
-            style={monoStyle}
+            style={{ ...mono, fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', border: '1px solid var(--border)', padding: '5px 10px', background: 'transparent', color: 'var(--ink-dim)', cursor: 'pointer' }}
           >
             {panelOpen ? 'hide panel' : 'show panel'}
           </button>
@@ -158,20 +142,24 @@ export default function RiveDetailPage() {
       </header>
 
       {/* ── Main content ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
 
         {/* Canvas */}
-        <div className="flex-1 flex flex-col overflow-hidden" style={{ background: (!loading && file?.bgColor) ? file.bgColor : 'var(--bg)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: (!loading && file?.bgColor) ? file.bgColor : 'var(--bg)' }}>
           {loading ? (
             <CanvasSkeleton />
           ) : (
-            <RivePlayerDetail
-              key={selectedArtboard ?? '__default__'}
-              fileUrl={file!.fileUrl}
-              artboard={selectedArtboard}
-              onDataExtracted={setFileData}
-              onRiveReady={handleRiveReady}
-            />
+            <>
+              <RivePlayerDetail
+                key={selectedArtboard ?? '__default__'}
+                fileUrl={file!.fileUrl}
+                artboard={selectedArtboard}
+                onDataExtracted={setFileData}
+                onRiveReady={handleRiveReady}
+              />
+              {/* Share card overlay */}
+              <ShareCard id={id} title={file!.title} originalName={file!.originalName} allowEmbed={file!.allowEmbed} allowDownload={file!.allowDownload} />
+            </>
           )}
         </div>
 

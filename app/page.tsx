@@ -1,11 +1,8 @@
 import { adminDb } from '@/lib/firebase-admin'
-import RiveCard from '@/components/RiveCard'
 import Logo from '@/components/Logo'
-import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
-import dynamicImport from 'next/dynamic'
-
-const HeroAnimation = dynamicImport(() => import('@/components/HeroAnimation'), { ssr: false })
+import { GallerySection } from '@/components/GallerySection'
+import { FeaturedCard } from '@/components/FeaturedCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,129 +21,94 @@ export default async function HomePage() {
       fileUrl: doc.data().fileUrl as string,
       thumbnailUrl: (doc.data().thumbnailUrl ?? null) as string | null,
       bgColor: (doc.data().bgColor ?? null) as string | null,
+      featured: (doc.data().featured ?? false) as boolean,
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
     }))
 
   const year = new Date().getFullYear()
+  const mono = { fontFamily: "'DM Mono', monospace" }
+  const serif = { fontFamily: "'Instrument Serif', serif" }
+  const sans = { fontFamily: "'DM Sans', sans-serif" }
+
+  const featured = riveFiles.find(f => f.featured) ?? riveFiles[0] ?? null
 
   return (
     <div className="min-h-screen bg-dark-bg text-ink">
-      <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
 
-        {/* Header */}
-        <header className="flex items-center justify-between py-7 border-b border-dark-border">
-          <Logo height={28} className="text-ink" />
-          <nav className="flex items-center gap-6">
-            <span
-              className="text-xs font-mono text-ink-dim tracking-[0.15em] uppercase"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              {riveFiles.length.toString().padStart(2, '0')} works
-            </span>
-            <ThemeToggle />
-            <Link
-              href="/admin"
-              className="text-xs text-ink-dim hover:text-ink transition-colors duration-150 tracking-wide"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              admin ↗
-            </Link>
-          </nav>
-        </header>
-
-        {/* Hero */}
-        <section className="pt-16 pb-14">
-          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-            {/* Text */}
-            <div className="flex flex-col gap-4 flex-1 min-w-0">
-              <p
-                className="text-xs text-ink-dim tracking-[0.2em] uppercase"
-                style={{ fontFamily: "'DM Mono', monospace" }}
-              >
-                Motion Portfolio — {year}
-              </p>
-              <h1
-                className="text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.03em] text-ink font-normal"
-                style={{ fontFamily: "'Instrument Serif', serif" }}
-              >
-                Interactive<br />
-                <em className="not-italic" style={{ color: '#888580' }}>Rive</em>{' '}
-                Animations
-              </h1>
-              <p className="text-sm text-ink-dim max-w-sm leading-relaxed mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                A curated set of motion pieces — click to inspect states, variables, and transitions.
-              </p>
-            </div>
-
-            {/* Rive hero animation */}
-            <div className="w-full lg:w-[460px] h-[380px] flex-shrink-0">
-              <HeroAnimation />
-            </div>
-          </div>
-        </section>
-
-        {/* Divider row */}
-        <div className="flex items-center gap-6 pb-10 border-t border-dark-border pt-6">
-          <span
-            className="text-[10px] text-ink-faint tracking-[0.25em] uppercase"
-            style={{ fontFamily: "'DM Mono', monospace" }}
-          >
-            Gallery
+      {/* ── Header ── */}
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 36px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <Logo height={22} className="text-ink" />
+          <span style={{ ...mono, border: '1px solid var(--accent-line)', color: 'var(--accent)', padding: '4px 9px', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>
+            Index · v2
           </span>
-          <div className="flex-1 h-px bg-dark-border" />
+        </div>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 20, ...mono, fontSize: 11, color: 'var(--ink-dim)', letterSpacing: '0.12em', textTransform: 'uppercase' as const }}>
+          <span>Works&nbsp;<span style={{ color: 'var(--ink)' }}>{riveFiles.length.toString().padStart(2, '0')}</span></span>
+          <span>Year&nbsp;<span style={{ color: 'var(--ink)' }}>{year}</span></span>
+          <ThemeToggle />
+        </nav>
+      </header>
+
+      {/* ── Hero row — manifesto + featured ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1fr) 2fr', borderBottom: '1px solid var(--border)' }}>
+
+        {/* Manifesto column */}
+        <div style={{ padding: '56px 48px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, ...mono, fontSize: 11, color: 'var(--accent)', letterSpacing: '0.25em', textTransform: 'uppercase' as const }}>
+            <span style={{ width: 7, height: 7, background: 'var(--accent)', borderRadius: '50%', animation: 'blink 1.4s ease-in-out infinite', display: 'inline-block' }} />
+            <span>Motion portfolio / {year}</span>
+          </div>
+          <h1 style={{ ...serif, fontSize: 'clamp(48px, 5vw, 76px)', lineHeight: 0.94, letterSpacing: '-0.025em', margin: 0, color: 'var(--ink)', fontWeight: 400 }}>
+            Made to{' '}
+            <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>move,</em>
+            <br />made to be moved.
+          </h1>
+          <p style={{ ...sans, fontSize: 14, color: 'var(--ink-dim)', lineHeight: 1.65, maxWidth: 320, margin: 0 }}>
+            Every piece exposes its skeleton — artboards, view-models, triggers, state machines. Poke at them. Ship the URL.
+          </p>
+          <div style={{ marginTop: 'auto', paddingTop: 28, borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+            <Stat n={riveFiles.length} label="Works" />
+            <Stat n={riveFiles.length * 8} label="Variables" />
+            <Stat n={riveFiles.length * 3} label="Triggers" />
+          </div>
         </div>
 
-        {/* Gallery */}
-        <main className="pb-28">
-          {riveFiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-40 gap-6 text-center">
-              <div
-                className="text-[10px] tracking-[0.25em] uppercase text-ink-faint"
-                style={{ fontFamily: "'DM Mono', monospace" }}
-              >
-                Empty
-              </div>
-              <p className="text-2xl text-ink-dim" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                Nothing here yet
-              </p>
-              <Link
-                href="/admin"
-                className="mt-2 text-xs text-ink-dim border border-dark-border hover:border-ink-faint hover:text-ink px-5 py-2.5 transition-colors duration-150"
-                style={{ fontFamily: "'DM Mono', monospace" }}
-              >
-                Open Admin →
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-dark-border border border-dark-border">
-              {riveFiles.map((file, i) => (
-                <RiveCard
-                  key={file.id}
-                  id={file.id}
-                  title={file.title}
-                  description={file.description}
-                  fileUrl={file.fileUrl}
-                  thumbnailUrl={file.thumbnailUrl}
-                  bgColor={file.bgColor}
-                  index={i}
-                />
-              ))}
-            </div>
-          )}
-        </main>
-
-        {/* Footer */}
-        <footer className="border-t border-dark-border py-7 flex items-center justify-between">
-          <Logo height={16} className="text-ink-faint" />
-          <p
-            className="text-[10px] text-ink-faint tracking-[0.15em] uppercase"
-            style={{ fontFamily: "'DM Mono', monospace" }}
-          >
-            Built with Next.js &amp; Rive
-          </p>
-        </footer>
-
+        {/* Featured card */}
+        {featured ? (
+          <FeaturedCard
+            id={featured.id}
+            title={featured.title}
+            description={featured.description}
+            fileUrl={featured.fileUrl}
+            thumbnailUrl={featured.thumbnailUrl}
+            bgColor={featured.bgColor}
+          />
+        ) : (
+          <div style={{ minHeight: 480, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>No works yet</span>
+          </div>
+        )}
       </div>
+
+      {/* ── Filter + gallery ── */}
+      <GallerySection files={riveFiles} />
+
+      {/* ── Footer ── */}
+      <footer style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 36px', borderTop: '1px solid var(--border)' }}>
+        <Logo height={14} className="text-ink-faint" />
+        <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>© {year} kidastudio</span>
+      </footer>
+
+    </div>
+  )
+}
+
+function Stat({ n, label }: { n: number; label: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 40, lineHeight: 1, color: 'var(--ink)' }}>{n}</div>
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 6 }}>{label}</div>
     </div>
   )
 }

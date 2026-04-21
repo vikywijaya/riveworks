@@ -2,16 +2,24 @@
 
 import { useState, useEffect, FormEvent, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import Logo from '@/components/Logo'
 import ThemeToggle from '@/components/ThemeToggle'
+
+const ArtboardPicker = dynamic(() => import('@/components/ArtboardPicker'), { ssr: false })
 
 interface RiveFile {
   id: string
   title: string
   description: string | null
   originalName: string
+  fileUrl: string
   thumbnailUrl: string | null
+  thumbnailArtboard: string | null
   bgColor: string | null
+  featured: boolean
+  allowEmbed: boolean
+  allowDownload: boolean
   createdAt: string
 }
 
@@ -33,6 +41,7 @@ export default function AdminPage() {
   const [editingThumbFile, setEditingThumbFile] = useState<File | null>(null)
   const [editingThumbPreview, setEditingThumbPreview] = useState<string | null>(null)
   const [editingRemoveThumb, setEditingRemoveThumb] = useState(false)
+  const [editingThumbnailArtboard, setEditingThumbnailArtboard] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
 
   // Upload form state
@@ -243,6 +252,7 @@ export default function AdminPage() {
           thumbnailData,
           thumbnailName,
           removeThumbnail: editingRemoveThumb,
+          thumbnailArtboard: editingThumbnailArtboard,
         }),
       })
       if (res.ok) {
@@ -253,11 +263,13 @@ export default function AdminPage() {
           description: editingDescription.trim() || null,
           bgColor: editingBgColor || null,
           thumbnailUrl: editingRemoveThumb ? null : (data.thumbnailUrl ?? f.thumbnailUrl),
+          thumbnailArtboard: editingThumbnailArtboard,
         } : f))
         setEditingId(null)
         setEditingThumbFile(null)
         setEditingThumbPreview(null)
         setEditingRemoveThumb(false)
+        setEditingThumbnailArtboard(null)
       } else {
         alert('Failed to update title')
       }
@@ -265,6 +277,34 @@ export default function AdminPage() {
       alert('Something went wrong')
     } finally {
       setSavingId(null)
+    }
+  }
+
+  async function handleToggleFlag(id: string, field: 'allowEmbed' | 'allowDownload', current: boolean) {
+    const next = !current
+    try {
+      await fetch(`/api/rive/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: next }),
+      })
+      setFiles(prev => prev.map(f => f.id === id ? { ...f, [field]: next } : f))
+    } catch {
+      alert('Something went wrong')
+    }
+  }
+
+  async function handleSetFeatured(id: string, current: boolean) {
+    const next = !current
+    try {
+      await fetch(`/api/rive/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured: next }),
+      })
+      setFiles(prev => prev.map(f => ({ ...f, featured: f.id === id ? next : next ? false : f.featured })))
+    } catch {
+      alert('Something went wrong')
     }
   }
 
@@ -575,6 +615,13 @@ export default function AdminPage() {
                             className="w-full px-2 py-1 bg-dark-bg border border-dark-border text-ink text-xs placeholder-ink-faint focus:outline-none focus:border-ink-faint"
                             style={monoStyle}
                           />
+                          {/* Artboard picker */}
+                          <ArtboardPicker
+                            fileUrl={file.fileUrl}
+                            value={editingThumbnailArtboard}
+                            onChange={setEditingThumbnailArtboard}
+                            monoStyle={monoStyle}
+                          />
                           {/* Thumbnail + bg color row */}
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -621,6 +668,7 @@ export default function AdminPage() {
                               setEditingDescription(file.description ?? '')
                               setEditingBgColor(file.bgColor ?? '')
                               setEditingThumbFile(null); setEditingThumbPreview(null); setEditingRemoveThumb(false)
+                              setEditingThumbnailArtboard(file.thumbnailArtboard ?? null)
                             }}
                             className="opacity-0 group-hover/title:opacity-100 text-[10px] text-ink-faint hover:text-ink transition-all px-1.5 py-0.5 border border-dark-border"
                             style={monoStyle}
@@ -637,6 +685,48 @@ export default function AdminPage() {
                         <span className="text-[10px] text-ink-faint" style={monoStyle}>{new Date(file.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
+
+                    {/* Embed toggle */}
+                    <button
+                      onClick={() => handleToggleFlag(file.id, 'allowEmbed', file.allowEmbed)}
+                      className="flex-shrink-0 self-center text-[10px] px-2 py-1 border transition-colors"
+                      style={{
+                        ...monoStyle,
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        borderColor: file.allowEmbed ? 'var(--accent-line)' : 'var(--border)',
+                        color: file.allowEmbed ? 'var(--accent)' : 'var(--ink-faint)',
+                      }}
+                      title={file.allowEmbed ? 'Disable embed' : 'Enable embed'}
+                    >
+                      &lt;/&gt;
+                    </button>
+
+                    {/* Download toggle */}
+                    <button
+                      onClick={() => handleToggleFlag(file.id, 'allowDownload', file.allowDownload)}
+                      className="flex-shrink-0 self-center text-[10px] px-2 py-1 border transition-colors"
+                      style={{
+                        ...monoStyle,
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        borderColor: file.allowDownload ? 'var(--accent-line)' : 'var(--border)',
+                        color: file.allowDownload ? 'var(--accent)' : 'var(--ink-faint)',
+                      }}
+                      title={file.allowDownload ? 'Disable download' : 'Enable download'}
+                    >
+                      ↓
+                    </button>
+
+                    {/* Featured star */}
+                    <button
+                      onClick={() => handleSetFeatured(file.id, file.featured)}
+                      className="flex-shrink-0 self-center text-lg leading-none transition-all"
+                      style={{ background: 'transparent', border: 0, cursor: 'pointer', color: file.featured ? 'var(--accent)' : 'var(--ink-faint)', opacity: file.featured ? 1 : undefined }}
+                      title={file.featured ? 'Unfeature' : 'Set as featured'}
+                    >
+                      {file.featured ? '★' : '☆'}
+                    </button>
 
                     {/* Delete */}
                     <button

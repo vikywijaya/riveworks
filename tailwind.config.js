@@ -9,15 +9,16 @@ module.exports = {
     extend: {
       colors: {
         'dark-bg':     'var(--bg)',
+        'dark-2':      'var(--bg-2)',
+        'dark-3':      'var(--bg-3)',
         'dark-card':   'var(--bg-card)',
         'dark-border': 'var(--border)',
         'dark-hover':  'var(--bg-hover)',
-        'accent-purple': '#7c3aed',
-        'accent-blue':   '#2563eb',
-        'accent-cyan':   '#06b6d4',
-        'ink':       'var(--ink)',
-        'ink-dim':   'var(--ink-dim)',
-        'ink-faint': 'var(--ink-faint)',
+        'ink':         'var(--ink)',
+        'ink-2':       'var(--ink-2)',
+        'ink-dim':     'var(--ink-dim)',
+        'ink-faint':   'var(--ink-faint)',
+        'accent':      'var(--accent)',
       },
       fontFamily: {
         'display': ['var(--font-display)', 'sans-serif'],

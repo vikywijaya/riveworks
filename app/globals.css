@@ -7,16 +7,18 @@
 /* ── Theme tokens ── */
 :root,
 html[data-theme="dark"] {
-  --bg:          #0e0e0e;
-  --bg-card:     #161616;
-  --bg-hover:    #1c1c1c;
-  --border:      #252525;
+  --bg:          #0d0d0d;
+  --bg-2:        #141414;
+  --bg-3:        #1b1b1b;
+  --bg-card:     #141414;
+  --bg-hover:    #1b1b1b;
+  --border:      #232323;
   --border-dim:  #1a1a1a;
   --ink:         #f0ede8;
-  --ink-dim:     #888580;
-  --ink-faint:   #3a3835;
+  --ink-2:       #c8c4bc;
+  --ink-dim:     #a8a39d;
+  --ink-faint:   #5a5754;
 
-  /* DataPanel / preview */
   --surface:        #0c0c0c;
   --surface-hover:  #1a1a1a;
   --tag-bool:    #68d391;
@@ -29,13 +31,16 @@ html[data-theme="dark"] {
 
 html[data-theme="light"] {
   --bg:          #f5f2ed;
-  --bg-card:     #ede9e2;
+  --bg-2:        #ece8df;
+  --bg-3:        #e2ddd2;
+  --bg-card:     #ece8df;
   --bg-hover:    #e5e0d7;
-  --border:      #d4cfc7;
-  --border-dim:  #ddd9d1;
+  --border:      #c8c3bb;
+  --border-dim:  #d8d4cc;
   --ink:         #1a1816;
-  --ink-dim:     #6b6660;
-  --ink-faint:   #b0aa9f;
+  --ink-2:       #3d3a35;
+  --ink-dim:     #504c49;
+  --ink-faint:   #8c8680;
 
   --surface:        #ede9e2;
   --surface-hover:  #e5e0d7;
@@ -47,17 +52,23 @@ html[data-theme="light"] {
   --tag-enum:    #553c9a;
 }
 
-/* rive-ray legacy vars — kept for DataPanel */
+/* accent — vermilion, oklch-tuned */
 :root {
-  --bg: #0f1116;
-  --border: #000000;
+  --accent-h:    245;
+  --accent:      oklch(0.68 0.19 var(--accent-h));
+  --accent-soft: oklch(0.68 0.19 var(--accent-h) / 0.14);
+  --accent-line: oklch(0.68 0.19 var(--accent-h) / 0.35);
+
+  /* rive-ray legacy */
   --text: #e3e6ec;
   --text-muted: #959595;
-  --accent: #6c5ce7;
-  --accent-hover: #7d6ff0;
   --tag-list: #74b9ff;
   --radius: 10px;
 }
+
+/* ── Animations ── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+@keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
 
 /* ── Skeleton shimmer ── */
 @keyframes rive-shimmer {

@@ -85,10 +85,10 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
   )
 
   const panelStyle: React.CSSProperties = {
-    width: 320,
-    minWidth: 320,
+    width: 380,
+    minWidth: 380,
     height: '100%',
-    background: 'var(--bg-card)',
+    background: 'var(--bg-2)',
     borderLeft: '1px solid var(--border)',
     display: 'flex',
     flexDirection: 'column',
@@ -98,8 +98,8 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
   if (!data) {
     return (
       <div style={panelStyle}>
-        <div style={{ padding: '0 16px', height: 44, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Data Bindings</span>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>Data</span>
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>Loading…</span>
@@ -127,10 +127,10 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
   return (
     <div style={panelStyle}>
       {/* Header */}
-      <div style={{ padding: '0 16px', height: 44, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Data Bindings</span>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>Data</span>
         {total > 0 && (
-          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)' }}>{total}</span>
+          <span style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', background: 'var(--bg-3)', padding: '2px 7px' }}>{total}</span>
         )}
       </div>
 
@@ -221,10 +221,11 @@ function VarRow({ variable: v, overrideValue, onChange }: VarRowProps) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '7px 14px',
+      padding: '9px 12px',
       gap: 8,
-      borderBottom: '1px solid var(--border-dim)',
-      minHeight: 40,
+      background: 'var(--bg)',
+      border: '1px solid var(--border-dim)',
+      minHeight: 38,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
         {/* Type tag */}

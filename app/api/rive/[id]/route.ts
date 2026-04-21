@@ -9,9 +9,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const { id } = params
-  const { title, description, thumbnailData, thumbnailName, bgColor, removeThumbnail } = await request.json()
+  const body = await request.json()
+  const { title, description, thumbnailData, thumbnailName, bgColor, removeThumbnail, featured, allowEmbed, allowDownload, thumbnailArtboard } = body
 
-  if (!title?.trim()) {
+  // Allow flag-only updates without requiring title
+  if (featured === undefined && allowEmbed === undefined && allowDownload === undefined && thumbnailArtboard === undefined && !title?.trim()) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   }
 
@@ -21,11 +23,27 @@ export async function PATCH(
 
   const existing = doc.data() as Record<string, string | null>
 
+  // Featured-only toggle: unfeature all others first, then set this one
+  if (featured === true) {
+    const all = await adminDb.collection('rives').where('featured', '==', true).get()
+    const batch = adminDb.batch()
+    all.docs.forEach(d => { if (d.id !== id) batch.update(d.ref, { featured: false }) })
+    await batch.commit()
+  }
+
   const update: Record<string, unknown> = {
-    title: title.trim(),
-    description: description?.trim() || null,
-    bgColor: bgColor || null,
     updatedAt: new Date(),
+  }
+
+  if (featured !== undefined) update.featured = featured
+  if (allowEmbed !== undefined) update.allowEmbed = allowEmbed
+  if (allowDownload !== undefined) update.allowDownload = allowDownload
+  if (thumbnailArtboard !== undefined) update.thumbnailArtboard = thumbnailArtboard
+
+  if (title?.trim()) {
+    update.title = title.trim()
+    update.description = description?.trim() || null
+    update.bgColor = bgColor || null
   }
 
   // Remove existing thumbnail
