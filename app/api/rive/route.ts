@@ -1,28 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
-import { adminDb } from '@/lib/firebase-admin'
+import { readAll, insertRecord, generateId } from '@/lib/blob-db'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const snapshot = await adminDb
-      .collection('rives')
-      .orderBy('createdAt', 'desc')
-      .get()
-
-    const files = snapshot.docs.map(doc => {
-      return {
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
-      }
-    })
-
+    const files = await readAll()
     return NextResponse.json(files)
   } catch (err) {
-    console.error('GET /api/rive error:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
@@ -52,7 +39,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Provide either a file or a URL' }, { status: 400 })
   }
 
-  // Upload custom thumbnail image if provided
   let thumbnailUrl: string | null = null
   let thumbnailBlobPathname: string | null = null
   if (thumbnailData && thumbnailName) {
@@ -67,7 +53,9 @@ export async function POST(request: NextRequest) {
     thumbnailBlobPathname = thumbBlob.pathname
   }
 
-  const docRef = await adminDb.collection('rives').add({
+  const now = new Date().toISOString()
+  const record = {
+    id: generateId(),
     title,
     description: description || null,
     originalName: originalName ?? new URL(fileUrl).pathname.split('/').pop() ?? 'external.riv',
@@ -75,10 +63,15 @@ export async function POST(request: NextRequest) {
     blobPathname,
     thumbnailUrl,
     thumbnailBlobPathname,
+    thumbnailArtboard: null,
     bgColor: bgColor || null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  })
+    featured: false,
+    allowEmbed: false,
+    allowDownload: false,
+    createdAt: now,
+    updatedAt: now,
+  }
 
-  return NextResponse.json({ id: docRef.id, title, description, fileUrl, thumbnailUrl })
+  await insertRecord(record)
+  return NextResponse.json({ id: record.id, title, description, fileUrl, thumbnailUrl })
 }

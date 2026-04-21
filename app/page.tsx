@@ -1,4 +1,4 @@
-import { adminDb } from '@/lib/firebase-admin'
+import { readAll } from '@/lib/blob-db'
 import Logo from '@/components/Logo'
 import ThemeToggle from '@/components/ThemeToggle'
 import { GallerySection } from '@/components/GallerySection'
@@ -7,23 +7,7 @@ import { FeaturedCard } from '@/components/FeaturedCard'
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const snapshot = await adminDb
-    .collection('rives')
-    .orderBy('createdAt', 'desc')
-    .get()
-
-  const riveFiles = snapshot.docs
-    .filter(doc => !!doc.data().fileUrl)
-    .map(doc => ({
-      id: doc.id,
-      title: doc.data().title as string,
-      description: (doc.data().description ?? null) as string | null,
-      fileUrl: doc.data().fileUrl as string,
-      thumbnailUrl: (doc.data().thumbnailUrl ?? null) as string | null,
-      bgColor: (doc.data().bgColor ?? null) as string | null,
-      featured: (doc.data().featured ?? false) as boolean,
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() ?? null,
-    }))
+  const riveFiles = await readAll()
 
   const year = new Date().getFullYear()
   const mono = { fontFamily: "'DM Mono', monospace" }
