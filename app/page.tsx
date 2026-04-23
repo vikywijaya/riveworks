@@ -17,7 +17,7 @@ export default async function HomePage() {
   const featured = riveFiles.find(f => f.featured) ?? riveFiles[0] ?? null
 
   return (
-    <div className="min-h-screen bg-dark-bg text-ink">
+    <div className="min-h-screen bg-dark-bg text-ink" style={{ display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Header ── */}
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 36px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
@@ -35,7 +35,7 @@ export default async function HomePage() {
       </header>
 
       {/* ── Hero row — manifesto + featured ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1fr) 2fr', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(340px, 1fr) 2fr', borderBottom: '1px solid var(--border)' }}>
 
         {/* Manifesto column */}
         <div style={{ padding: '56px 48px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 24 }}>

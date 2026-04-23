@@ -8,13 +8,16 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const files = await readAll()
-    return NextResponse.json(files)
+    return NextResponse.json(files, {
+      headers: { 'Cache-Control': 'no-store, max-age=0' },
+    })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  try {
   const body = await request.json()
   const { title, description, fileData, originalName, fileUrl: externalUrl, thumbnailData, thumbnailName, bgColor } = body
 
@@ -73,5 +76,9 @@ export async function POST(request: NextRequest) {
   }
 
   await insertRecord(record)
-  return NextResponse.json({ id: record.id, title, description, fileUrl, thumbnailUrl })
+  return NextResponse.json(record)
+  } catch (err) {
+    console.error('POST /api/rive error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }

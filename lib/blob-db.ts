@@ -30,7 +30,9 @@ export async function readAll(): Promise<RiveRecord[]> {
   try {
     const url = await getMetadataUrl()
     if (!url) return []
-    const res = await fetch(url, { cache: 'no-store' })
+    // Bust Vercel Blob's CDN cache so writes are read-your-own-writes consistent
+    const cacheBuster = `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`
+    const res = await fetch(cacheBuster, { cache: 'no-store' })
     if (!res.ok) return []
     return await res.json()
   } catch {
@@ -43,6 +45,7 @@ export async function writeAll(records: RiveRecord[]): Promise<void> {
     access: 'public',
     contentType: 'application/json',
     addRandomSuffix: false,
+    allowOverwrite: true,
   })
 }
 

@@ -23,6 +23,16 @@ interface RiveFile {
   createdAt: string
 }
 
+const mono = { fontFamily: "'DM Mono', monospace" } as const
+const serif = { fontFamily: "'Instrument Serif', serif" } as const
+const sans = { fontFamily: "'DM Sans', sans-serif" } as const
+
+function titleFromFilename(name: string): string {
+  const base = name.replace(/\.riv$/i, '').replace(/[_\-]+/g, ' ').trim()
+  if (!base) return ''
+  return base.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -30,6 +40,7 @@ export default function AdminPage() {
   const editThumbInputRef = useRef<HTMLInputElement>(null)
 
   const [files, setFiles] = useState<RiveFile[]>([])
+  const [storageBytes, setStorageBytes] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -70,8 +81,21 @@ export default function AdminPage() {
     }
   }
 
+  async function fetchStorage() {
+    try {
+      const res = await fetch('/api/storage')
+      if (res.ok) {
+        const data = await res.json()
+        setStorageBytes(data.totalBytes ?? 0)
+      }
+    } catch (err) {
+      console.error('Failed to fetch storage', err)
+    }
+  }
+
   useEffect(() => {
     fetchFiles()
+    fetchStorage()
   }, [])
 
   async function handleUpload(e: FormEvent) {
@@ -98,7 +122,6 @@ export default function AdminPage() {
       if (thumbInputRef.current) thumbInputRef.current.value = ''
     }
 
-    // Helper to encode thumb file to base64
     const encodeThumb = (file: File): Promise<string> =>
       new Promise((resolve, reject) => {
         const r = new FileReader()
@@ -126,9 +149,11 @@ export default function AdminPage() {
         })
         setUploadProgress(100)
         if (res.ok) {
+          const record = await res.json()
+          setFiles((prev) => [record, ...prev])
           setUploadSuccess('Animation added successfully!')
           reset()
-          await fetchFiles()
+          fetchStorage()
           setTimeout(() => setUploadSuccess(''), 3000)
         } else {
           const data = await res.json()
@@ -154,7 +179,6 @@ export default function AdminPage() {
         const base64 = (event.target?.result as string).split(',')[1]
         setUploadProgress(60)
 
-        // Animate progress from 60 → 90 while upload is in flight
         let fakeProgress = 60
         ticker = setInterval(() => {
           fakeProgress = Math.min(fakeProgress + 3, 90)
@@ -186,9 +210,11 @@ export default function AdminPage() {
         setUploadProgress(100)
 
         if (res.ok) {
+          const record = await res.json()
+          setFiles((prev) => [record, ...prev])
           setUploadSuccess('Animation uploaded successfully!')
           reset()
-          await fetchFiles()
+          fetchStorage()
           setTimeout(() => setUploadSuccess(''), 3000)
         } else {
           const data = await res.json()
@@ -216,6 +242,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/rive/${id}`, { method: 'DELETE' })
       if (res.ok) {
         setFiles((prev) => prev.filter((f) => f.id !== id))
+        fetchStorage()
       } else {
         alert('Failed to delete file')
       }
@@ -314,437 +341,683 @@ export default function AdminPage() {
     router.refresh()
   }
 
-  const monoStyle = { fontFamily: "'DM Mono', monospace" }
-  const fieldCls = "w-full px-3 py-2 bg-dark-bg border border-dark-border text-ink placeholder-ink-faint text-sm focus:outline-none focus:border-ink-dim transition-colors duration-150"
+  const year = new Date().getFullYear()
+  const featuredCount = files.filter(f => f.featured).length
+
+  // Vercel Blob: no published hard cap on Hobby. Use 1 GB as a reference
+  // for the progress bar visualization — adjust if your plan differs.
+  const STORAGE_LIMIT_BYTES = 1024 ** 3
+  const storageUsedBytes = storageBytes ?? 0
+  const storagePct = Math.min(100, (storageUsedBytes / STORAGE_LIMIT_BYTES) * 100)
+  const formatBytes = (b: number) => {
+    if (b < 1024) return `${b} B`
+    if (b < 1024 ** 2) return `${(b / 1024).toFixed(1)} KB`
+    if (b < 1024 ** 3) return `${(b / 1024 ** 2).toFixed(1)} MB`
+    return `${(b / 1024 ** 3).toFixed(2)} GB`
+  }
+  const storageColor = storagePct >= 90 ? '#f87171' : storagePct >= 70 ? '#fbbf24' : 'var(--accent)'
+
+  // Shared style objects
+  const labelStyle = { ...mono, display: 'block', fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' as const, marginBottom: 8 }
+  const fieldStyle = {
+    ...sans,
+    width: '100%',
+    padding: '10px 12px',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    color: 'var(--ink)',
+    fontSize: 13,
+    outline: 'none',
+    transition: 'border-color 150ms',
+  }
+  const monoFieldStyle = { ...fieldStyle, ...mono }
 
   return (
-    <div className="min-h-screen bg-dark-bg text-ink">
-      <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Header */}
-        <header className="flex items-center justify-between py-7 border-b border-dark-border">
-          <div className="flex items-center gap-5">
-            <Logo height={28} className="text-ink" />
-            <span className="text-[10px] text-ink-faint tracking-[0.25em] uppercase" style={monoStyle}>Admin</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <a
-              href="/"
-              className="text-xs text-ink-dim hover:text-ink transition-colors duration-150 tracking-wide"
-              style={monoStyle}
-            >
-              ← gallery
-            </a>
-            <ThemeToggle />
-            <button
-              onClick={handleLogout}
-              className="text-xs text-ink-dim hover:text-red-400 transition-colors duration-150 tracking-wide"
-              style={monoStyle}
-            >
-              logout
-            </button>
-          </div>
-        </header>
-
-        {/* Page title row */}
-        <div className="pt-12 pb-10 flex items-end justify-between border-b border-dark-border">
-          <div>
-            <p className="text-[10px] text-ink-faint tracking-[0.2em] uppercase mb-2" style={monoStyle}>Dashboard</p>
-            <h1 className="text-[2.6rem] leading-none tracking-[-0.03em] text-ink font-normal" style={{ fontFamily: "'Instrument Serif', serif" }}>
-              Manage Animations
-            </h1>
-          </div>
-          <span className="text-xs text-ink-faint pb-1" style={monoStyle}>
-            {files.length.toString().padStart(2, '0')} entries
+      {/* ── Header ── */}
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 36px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <Logo height={22} className="text-ink" />
+          <span style={{ ...mono, border: '1px solid var(--accent-line)', color: 'var(--accent)', padding: '4px 9px', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>
+            Admin · v2
           </span>
         </div>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 20, ...mono, fontSize: 11, color: 'var(--ink-dim)', letterSpacing: '0.12em', textTransform: 'uppercase' as const }}>
+          <a href="/" style={{ color: 'var(--ink-dim)', textDecoration: 'none' }}>
+            ← Gallery
+          </a>
+          <span>Entries&nbsp;<span style={{ color: 'var(--ink)' }}>{files.length.toString().padStart(2, '0')}</span></span>
+          <span title={`${formatBytes(storageUsedBytes)} of ${formatBytes(STORAGE_LIMIT_BYTES)}`}>
+            Storage&nbsp;<span style={{ color: storagePct >= 70 ? storageColor : 'var(--ink)' }}>
+              {storageBytes === null ? '—' : formatBytes(storageUsedBytes)}
+            </span>
+          </span>
+          <ThemeToggle />
+          <button
+            onClick={handleLogout}
+            style={{ ...mono, background: 'transparent', border: 0, cursor: 'pointer', color: 'var(--ink-dim)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' as const, padding: 0 }}
+          >
+            Logout
+          </button>
+        </nav>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-0 lg:gap-12 pt-10 pb-24">
+      {/* ── Hero row ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1fr) 2fr', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ padding: '56px 48px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, ...mono, fontSize: 11, color: 'var(--accent)', letterSpacing: '0.25em', textTransform: 'uppercase' as const }}>
+            <span style={{ width: 7, height: 7, background: 'var(--accent)', borderRadius: '50%', animation: 'blink 1.4s ease-in-out infinite', display: 'inline-block' }} />
+            <span>Admin console / {year}</span>
+          </div>
+          <h1 style={{ ...serif, fontSize: 'clamp(44px, 4.5vw, 68px)', lineHeight: 0.94, letterSpacing: '-0.025em', margin: 0, color: 'var(--ink)', fontWeight: 400 }}>
+            Curate the{' '}
+            <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>works,</em>
+            <br />tune the stage.
+          </h1>
+          <p style={{ ...sans, fontSize: 14, color: 'var(--ink-dim)', lineHeight: 1.65, maxWidth: 340, margin: 0 }}>
+            Upload .riv files, wire up thumbnails and artboards, flip embed and download permissions. Changes go live immediately.
+          </p>
+          <div style={{ marginTop: 'auto', paddingTop: 28, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 22 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+              <Stat n={files.length} label="Entries" />
+              <Stat n={featuredCount} label="Featured" />
+              <Stat n={files.filter(f => f.allowEmbed).length} label="Embeddable" />
+            </div>
 
-          {/* ── Upload Panel ── */}
-          <div className="sticky top-8 self-start">
-            <p className="text-[10px] text-ink-faint tracking-[0.2em] uppercase mb-5" style={monoStyle}>New Entry</p>
+            {/* Storage meter */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.22em', textTransform: 'uppercase' as const }}>
+                  Storage
+                </span>
+                <span style={{ ...mono, fontSize: 11, color: 'var(--ink)', letterSpacing: '0.1em' }}>
+                  {storageBytes === null ? '— / —' : `${formatBytes(storageUsedBytes)} / ${formatBytes(STORAGE_LIMIT_BYTES)}`}
+                </span>
+              </div>
+              <div style={{ width: '100%', height: 2, background: 'var(--border)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${storagePct}%`,
+                  background: storageColor,
+                  transition: 'width 400ms, background 200ms',
+                }} />
+              </div>
+              <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.15em', marginTop: 6 }}>
+                {storageBytes === null ? 'measuring…' : `${storagePct.toFixed(1)}% of 1 GB reference`}
+              </div>
+            </div>
+          </div>
+        </div>
 
-            <form onSubmit={handleUpload} className="space-y-0">
+        <div style={{ padding: '56px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 18, background: 'var(--bg-2)' }}>
+          <div style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>
+            Latest activity
+          </div>
+          {files.slice(0, 3).map((f) => (
+            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 16, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
+              <div
+                style={{
+                  width: 40, height: 40, flexShrink: 0, overflow: 'hidden',
+                  border: '1px solid var(--border)',
+                  background: f.bgColor || 'var(--bg-3)',
+                }}
+              >
+                {f.thumbnailUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={f.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ ...sans, fontSize: 13, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.title}</div>
+                <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em', marginTop: 2 }}>
+                  {new Date(f.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+              {f.featured && (
+                <span style={{ ...mono, fontSize: 10, color: 'var(--accent)', letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>Featured</span>
+              )}
+            </div>
+          ))}
+          {files.length === 0 && !loading && (
+            <p style={{ ...serif, fontSize: 22, color: 'var(--ink-dim)', margin: 0 }}>
+              Nothing uploaded <em style={{ color: 'var(--accent)' }}>yet.</em>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Main content ── */}
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(340px, 1fr) 2fr', borderBottom: '1px solid var(--border)' }}>
+
+        {/* ── Upload Panel ── */}
+        <div style={{ padding: '48px 48px', borderRight: '1px solid var(--border)' }}>
+          <div style={{ position: 'sticky', top: 24 }}>
+            <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' as const, marginBottom: 18 }}>
+              New entry
+            </div>
+            <h2 style={{ ...serif, fontSize: 32, lineHeight: 1, letterSpacing: '-0.02em', margin: 0, marginBottom: 28, color: 'var(--ink)', fontWeight: 400 }}>
+              Add a <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>work</em>
+            </h2>
+
+            <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {/* Mode toggle */}
-              <div className="flex border border-dark-border mb-5">
+              <div style={{ display: 'flex', border: '1px solid var(--border)' }}>
                 <button
                   type="button"
                   onClick={() => setUploadMode('file')}
-                  className={`flex-1 py-2 text-[11px] tracking-wider transition-colors duration-150 ${uploadMode === 'file' ? 'bg-ink text-dark-bg' : 'text-ink-dim hover:text-ink'}`}
-                  style={monoStyle}
+                  style={{
+                    ...mono,
+                    flex: 1,
+                    padding: '9px 0',
+                    fontSize: 11,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase' as const,
+                    background: uploadMode === 'file' ? 'var(--ink)' : 'transparent',
+                    color: uploadMode === 'file' ? 'var(--bg)' : 'var(--ink-dim)',
+                    border: 0,
+                    cursor: 'pointer',
+                    transition: 'all 150ms',
+                  }}
                 >
-                  FILE
+                  File
                 </button>
                 <button
                   type="button"
                   onClick={() => setUploadMode('url')}
-                  className={`flex-1 py-2 text-[11px] tracking-wider transition-colors duration-150 border-l border-dark-border ${uploadMode === 'url' ? 'bg-ink text-dark-bg' : 'text-ink-dim hover:text-ink'}`}
-                  style={monoStyle}
+                  style={{
+                    ...mono,
+                    flex: 1,
+                    padding: '9px 0',
+                    fontSize: 11,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase' as const,
+                    background: uploadMode === 'url' ? 'var(--ink)' : 'transparent',
+                    color: uploadMode === 'url' ? 'var(--bg)' : 'var(--ink-dim)',
+                    borderLeft: '1px solid var(--border)',
+                    borderTop: 0,
+                    borderRight: 0,
+                    borderBottom: 0,
+                    cursor: 'pointer',
+                    transition: 'all 150ms',
+                  }}
                 >
                   URL
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {/* File drop zone */}
-                {uploadMode === 'file' && (
-                  <div>
-                    <label className="block text-[10px] text-ink-faint uppercase tracking-[0.15em] mb-1.5" style={monoStyle}>
-                      .riv file
-                    </label>
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`relative flex flex-col items-center justify-center w-full h-28 border border-dashed cursor-pointer transition-colors duration-150 ${
-                        selectedFile ? 'border-ink/40 bg-dark-card' : 'border-dark-border hover:border-ink-faint'
-                      }`}
-                    >
-                      {selectedFile ? (
-                        <div className="text-center px-4">
-                          <p className="text-xs text-ink truncate" style={monoStyle}>{selectedFile.name}</p>
-                          <p className="text-[10px] text-ink-dim mt-1" style={monoStyle}>{(selectedFile.size / 1024).toFixed(1)} KB</p>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-ink-faint" style={monoStyle}>click to select</p>
-                      )}
-                      <input ref={fileInputRef} type="file" accept=".riv" className="hidden"
-                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
-                    </div>
-                  </div>
-                )}
-
-                {/* URL input */}
-                {uploadMode === 'url' && (
-                  <div>
-                    <label className="block text-[10px] text-ink-faint uppercase tracking-[0.15em] mb-1.5" style={monoStyle}>
-                      URL
-                    </label>
-                    <input
-                      type="url"
-                      value={fileUrl}
-                      onChange={(e) => setFileUrl(e.target.value)}
-                      placeholder="https://…/animation.riv"
-                      required={uploadMode === 'url'}
-                      className={fieldCls}
-                      style={monoStyle}
-                    />
-                  </div>
-                )}
-
-                {/* Title */}
+              {/* File drop zone */}
+              {uploadMode === 'file' && (
                 <div>
-                  <label className="block text-[10px] text-ink-faint uppercase tracking-[0.15em] mb-1.5" style={monoStyle}>
-                    title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Animation title"
-                    required
-                    className={fieldCls}
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-[10px] text-ink-faint uppercase tracking-[0.15em] mb-1.5" style={monoStyle}>
-                    description
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Optional…"
-                    rows={2}
-                    className={`${fieldCls} resize-none`}
-                  />
-                </div>
-
-                {/* Thumbnail */}
-                <div>
-                  <label className="block text-[10px] text-ink-faint uppercase tracking-[0.15em] mb-1.5" style={monoStyle}>
-                    thumbnail
-                  </label>
+                  <label style={labelStyle}>.riv file</label>
                   <div
-                    onClick={() => thumbInputRef.current?.click()}
-                    className={`relative flex items-center justify-center w-full h-20 border border-dashed cursor-pointer transition-colors duration-150 overflow-hidden ${
-                      thumbFile ? 'border-ink/30 bg-dark-card' : 'border-dark-border hover:border-ink-faint'
-                    }`}
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', height: 108,
+                      border: `1px dashed ${selectedFile ? 'var(--accent-line)' : 'var(--border)'}`,
+                      background: selectedFile ? 'var(--bg-2)' : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 150ms',
+                    }}
                   >
-                    {thumbPreview ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={thumbPreview} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50" />
-                        <span className="relative text-[10px] text-ink bg-dark-bg/80 px-2 py-0.5" style={monoStyle}>{thumbFile?.name}</span>
-                      </>
+                    {selectedFile ? (
+                      <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                        <p style={{ ...mono, fontSize: 12, color: 'var(--ink)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }}>{selectedFile.name}</p>
+                        <p style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', marginTop: 4, marginBottom: 0, letterSpacing: '0.1em' }}>{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
                     ) : (
-                      <span className="text-[10px] text-ink-faint" style={monoStyle}>click to select</span>
+                      <p style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.15em', textTransform: 'uppercase' as const, margin: 0 }}>click to select</p>
                     )}
-                    <input ref={thumbInputRef} type="file" accept="image/*" className="hidden"
+                    <input ref={fileInputRef} type="file" accept=".riv" style={{ display: 'none' }}
                       onChange={(e) => {
                         const f = e.target.files?.[0] || null
-                        setThumbFile(f)
-                        if (f) { const r = new FileReader(); r.onload = ev => setThumbPreview(ev.target?.result as string); r.readAsDataURL(f) }
-                        else setThumbPreview(null)
+                        setSelectedFile(f)
+                        if (f && !title.trim()) setTitle(titleFromFilename(f.name))
                       }} />
                   </div>
                 </div>
+              )}
 
-                {/* Background color */}
+              {/* URL input */}
+              {uploadMode === 'url' && (
                 <div>
-                  <label className="block text-[10px] text-ink-faint uppercase tracking-[0.15em] mb-1.5" style={monoStyle}>
-                    bg color
-                  </label>
-                  <div className="flex items-center gap-3 border border-dark-border px-3 py-2 bg-dark-bg">
-                    <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)}
-                      className="w-6 h-6 cursor-pointer bg-transparent border-0 p-0 flex-shrink-0" />
-                    <span className="text-xs text-ink-dim flex-1" style={monoStyle}>{bgColor}</span>
-                    {bgColor !== '#000000' && (
-                      <button type="button" onClick={() => setBgColor('#000000')} className="text-[10px] text-ink-faint hover:text-ink transition-colors" style={monoStyle}>reset</button>
-                    )}
+                  <label style={labelStyle}>URL</label>
+                  <input
+                    type="url"
+                    value={fileUrl}
+                    onChange={(e) => setFileUrl(e.target.value)}
+                    onBlur={(e) => {
+                      if (!title.trim() && e.target.value.trim()) {
+                        try {
+                          const name = new URL(e.target.value.trim()).pathname.split('/').pop() || ''
+                          const t = titleFromFilename(name)
+                          if (t) setTitle(t)
+                        } catch {}
+                      }
+                    }}
+                    placeholder="https://…/animation.riv"
+                    required={uploadMode === 'url'}
+                    style={monoFieldStyle}
+                  />
+                </div>
+              )}
+
+              {/* Title */}
+              <div>
+                <label style={labelStyle}>
+                  Title <span style={{ color: 'var(--accent)' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Animation title"
+                  required
+                  style={fieldStyle}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={labelStyle}>Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional…"
+                  rows={2}
+                  style={{ ...fieldStyle, resize: 'none' as const }}
+                />
+              </div>
+
+              {/* Thumbnail */}
+              <div>
+                <label style={labelStyle}>Thumbnail</label>
+                <div
+                  onClick={() => thumbInputRef.current?.click()}
+                  style={{
+                    position: 'relative',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '100%', height: 76,
+                    border: `1px dashed ${thumbFile ? 'var(--accent-line)' : 'var(--border)'}`,
+                    background: thumbFile ? 'var(--bg-2)' : 'transparent',
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                    transition: 'all 150ms',
+                  }}
+                >
+                  {thumbPreview ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={thumbPreview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
+                      <span style={{ ...mono, position: 'relative', fontSize: 10, color: 'var(--ink)', background: 'var(--bg)', padding: '2px 8px', letterSpacing: '0.1em' }}>{thumbFile?.name}</span>
+                    </>
+                  ) : (
+                    <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>click to select</span>
+                  )}
+                  <input ref={thumbInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null
+                      setThumbFile(f)
+                      if (f) { const r = new FileReader(); r.onload = ev => setThumbPreview(ev.target?.result as string); r.readAsDataURL(f) }
+                      else setThumbPreview(null)
+                    }} />
+                </div>
+              </div>
+
+              {/* Background color */}
+              <div>
+                <label style={labelStyle}>Bg color</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, border: '1px solid var(--border)', padding: '8px 12px', background: 'var(--bg)' }}>
+                  <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)}
+                    style={{ width: 24, height: 24, cursor: 'pointer', background: 'transparent', border: 0, padding: 0, flexShrink: 0 }} />
+                  <span style={{ ...mono, fontSize: 12, color: 'var(--ink-dim)', flex: 1, letterSpacing: '0.1em' }}>{bgColor}</span>
+                  {bgColor !== '#000000' && (
+                    <button type="button" onClick={() => setBgColor('#000000')}
+                      style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', background: 'transparent', border: 0, cursor: 'pointer', letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>reset</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress */}
+              {uploading && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', ...mono, fontSize: 10, color: 'var(--ink-faint)', marginBottom: 6, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>
+                    <span>{uploadProgress < 50 ? 'reading…' : uploadProgress < 90 ? 'uploading…' : 'saving…'}</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: 1, background: 'var(--border)' }}>
+                    <div style={{ height: '100%', background: 'var(--accent)', transition: 'width 500ms', width: `${uploadProgress}%` }} />
                   </div>
                 </div>
+              )}
 
-                {/* Progress */}
-                {uploading && (
-                  <div>
-                    <div className="flex justify-between text-[10px] text-ink-faint mb-1" style={monoStyle}>
-                      <span>{uploadProgress < 50 ? 'reading…' : uploadProgress < 90 ? 'uploading…' : 'saving…'}</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="w-full h-px bg-dark-border">
-                      <div className="h-full bg-ink transition-all duration-500" style={{ width: `${uploadProgress}%` }} />
-                    </div>
-                  </div>
-                )}
+              {/* Feedback */}
+              {error && (
+                <p style={{ ...mono, fontSize: 11, color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.3)', padding: '8px 12px', margin: 0, letterSpacing: '0.05em' }}>{error}</p>
+              )}
+              {uploadSuccess && (
+                <p style={{ ...mono, fontSize: 11, color: 'var(--accent)', border: '1px solid var(--accent-line)', padding: '8px 12px', margin: 0, letterSpacing: '0.05em' }}>{uploadSuccess}</p>
+              )}
 
-                {/* Feedback */}
-                {error && (
-                  <p className="text-[11px] text-red-400 border border-red-900/40 px-3 py-2" style={monoStyle}>{error}</p>
-                )}
-                {uploadSuccess && (
-                  <p className="text-[11px] text-green-400 border border-green-900/40 px-3 py-2" style={monoStyle}>{uploadSuccess}</p>
-                )}
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={uploading || !title.trim() || (uploadMode === 'file' ? !selectedFile : !fileUrl.trim())}
-                  className="w-full py-2.5 bg-ink text-dark-bg text-xs font-medium tracking-wider hover:bg-ink/90 active:bg-ink/80 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
-                  style={monoStyle}
-                >
-                  {uploading ? `UPLOADING ${uploadProgress}%` : 'ADD ANIMATION'}
-                </button>
-              </div>
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={uploading || !title.trim() || (uploadMode === 'file' ? !selectedFile : !fileUrl.trim())}
+                style={{
+                  ...mono,
+                  width: '100%',
+                  padding: '12px 0',
+                  background: 'var(--ink)',
+                  color: 'var(--bg)',
+                  fontSize: 11,
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase' as const,
+                  border: 0,
+                  cursor: 'pointer',
+                  transition: 'opacity 150ms',
+                  opacity: uploading || !title.trim() || (uploadMode === 'file' ? !selectedFile : !fileUrl.trim()) ? 0.3 : 1,
+                }}
+              >
+                {uploading ? `Uploading ${uploadProgress}%` : 'Add animation'}
+              </button>
             </form>
           </div>
+        </div>
 
-          {/* ── File list ── */}
-          <div>
-            <p className="text-[10px] text-ink-faint tracking-[0.2em] uppercase mb-5" style={monoStyle}>Entries</p>
+        {/* ── File list ── */}
+        <div style={{ padding: '48px 48px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
+            <div>
+              <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' as const, marginBottom: 6 }}>
+                Entries
+              </div>
+              <h2 style={{ ...serif, fontSize: 32, lineHeight: 1, letterSpacing: '-0.02em', margin: 0, color: 'var(--ink)', fontWeight: 400 }}>
+                All <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>works</em>
+              </h2>
+            </div>
+            <span style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>
+              {files.length.toString().padStart(2, '0')} total
+            </span>
+          </div>
 
-            {loading ? (
-              <div className="space-y-px">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 bg-dark-card border border-dark-border animate-pulse" />
-                ))}
-              </div>
-            ) : files.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-32 gap-4 text-center border border-dark-border">
-                <p className="text-ink-dim" style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.4rem' }}>Nothing uploaded yet</p>
-                <p className="text-xs text-ink-faint" style={monoStyle}>use the form to add your first animation</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-dark-border border border-dark-border">
-                {files.map((file, i) => (
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} style={{ height: 88, background: 'var(--bg-2)', border: '1px solid var(--border)', animation: 'pulse 1.4s ease-in-out infinite' }} />
+              ))}
+            </div>
+          ) : files.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '96px 24px', gap: 14, textAlign: 'center', border: '1px solid var(--border)' }}>
+              <p style={{ ...serif, fontSize: 28, color: 'var(--ink-dim)', margin: 0 }}>
+                Nothing uploaded <em style={{ color: 'var(--accent)' }}>yet.</em>
+              </p>
+              <p style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.15em', textTransform: 'uppercase' as const, margin: 0 }}>use the form to add your first animation</p>
+            </div>
+          ) : (
+            <div style={{ border: '1px solid var(--border)' }}>
+              {files.map((file, i) => (
+                <div
+                  key={file.id}
+                  className="admin-row"
+                  style={{
+                    display: 'flex',
+                    gap: 16,
+                    padding: 18,
+                    borderBottom: i === files.length - 1 ? 0 : '1px solid var(--border)',
+                    transition: 'background 150ms',
+                  }}
+                >
+                  {/* Thumbnail */}
                   <div
-                    key={file.id}
-                    className="group flex gap-4 p-4 hover:bg-dark-card transition-colors duration-150"
+                    style={{
+                      width: 60, height: 60, flexShrink: 0, overflow: 'hidden',
+                      border: '1px solid var(--border)',
+                      background: file.bgColor || 'var(--bg-3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
                   >
-                    {/* Thumbnail */}
-                    <div
-                      className="w-14 h-14 flex-shrink-0 overflow-hidden border border-dark-border"
-                      style={{ background: file.bgColor || '#161616' }}
-                    >
-                      {file.thumbnailUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={file.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-[10px] text-ink-faint" style={monoStyle}>{(i + 1).toString().padStart(2, '0')}</span>
-                        </div>
-                      )}
-                    </div>
+                    {file.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={file.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>{(i + 1).toString().padStart(2, '0')}</span>
+                    )}
+                  </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {editingId === file.id ? (
-                        <div className="flex flex-col gap-2">
-                          {/* Title + save/cancel */}
-                          <div className="flex items-center gap-2">
-                            <input
-                              autoFocus
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === 'Escape') setEditingId(null) }}
-                              placeholder="Title"
-                              className="flex-1 min-w-0 px-2 py-1 bg-dark-bg border border-ink-faint text-ink text-sm focus:outline-none"
-                            />
-                            <button
-                              onClick={() => handleRename(file.id)}
-                              disabled={savingId === file.id}
-                              className="text-[10px] text-ink border border-dark-border px-2 py-1 hover:bg-dark-card transition-colors"
-                              style={monoStyle}
-                            >
-                              {savingId === file.id ? '…' : 'save'}
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="text-[10px] text-ink-dim border border-dark-border px-2 py-1 hover:bg-dark-card transition-colors"
-                              style={monoStyle}
-                            >
-                              esc
-                            </button>
-                          </div>
-                          {/* Description */}
+                  {/* Content */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {editingId === file.id ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {/* Title + save/cancel */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <input
-                            value={editingDescription}
-                            onChange={(e) => setEditingDescription(e.target.value)}
+                            autoFocus
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Escape') setEditingId(null) }}
-                            placeholder="Description (optional)"
-                            className="w-full px-2 py-1 bg-dark-bg border border-dark-border text-ink text-xs placeholder-ink-faint focus:outline-none focus:border-ink-faint"
-                            style={monoStyle}
+                            placeholder="Title"
+                            style={{ ...sans, flex: 1, minWidth: 0, padding: '6px 10px', background: 'var(--bg)', border: '1px solid var(--ink-faint)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
                           />
-                          {/* Artboard picker */}
-                          <ArtboardPicker
-                            fileUrl={file.fileUrl}
-                            value={editingThumbnailArtboard}
-                            onChange={setEditingThumbnailArtboard}
-                            monoStyle={monoStyle}
-                          />
-                          {/* Thumbnail + bg color row */}
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              {(editingThumbPreview || (file.thumbnailUrl && !editingRemoveThumb)) && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={editingThumbPreview || file.thumbnailUrl!} alt="" className="w-7 h-7 object-cover border border-dark-border flex-shrink-0" />
-                              )}
-                              <button type="button" onClick={() => editThumbInputRef.current?.click()}
-                                className="text-[10px] text-ink-dim hover:text-ink transition-colors truncate" style={monoStyle}>
-                                {editingThumbFile ? editingThumbFile.name : (file.thumbnailUrl && !editingRemoveThumb) ? 'change thumb' : 'add thumb'}
-                              </button>
-                              {(file.thumbnailUrl || editingThumbFile) && !editingRemoveThumb && (
-                                <button type="button"
-                                  onClick={() => { setEditingRemoveThumb(true); setEditingThumbFile(null); setEditingThumbPreview(null); if (editThumbInputRef.current) editThumbInputRef.current.value = '' }}
-                                  className="text-[10px] text-red-400 hover:text-red-300 flex-shrink-0" style={monoStyle}>
-                                  ×
-                                </button>
-                              )}
-                              {editingRemoveThumb && <span className="text-[10px] text-red-400 flex-shrink-0" style={monoStyle}>will remove</span>}
-                              <input ref={editThumbInputRef} type="file" accept="image/*" className="hidden"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0] || null
-                                  setEditingThumbFile(f); setEditingRemoveThumb(false)
-                                  if (f) { const r = new FileReader(); r.onload = ev => setEditingThumbPreview(ev.target?.result as string); r.readAsDataURL(f) }
-                                  else setEditingThumbPreview(null)
-                                }} />
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              <input type="color" value={editingBgColor || '#000000'}
-                                onChange={(e) => setEditingBgColor(e.target.value)}
-                                className="w-6 h-6 cursor-pointer bg-transparent border-0 p-0" title="Background color" />
-                              <span className="text-[10px] text-ink-faint" style={monoStyle}>{editingBgColor || '#000000'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="group/title flex items-center gap-2">
-                          <h3 className="text-sm text-ink font-medium truncate leading-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                            {file.title}
-                          </h3>
                           <button
-                            onClick={() => {
-                              setEditingId(file.id); setEditingTitle(file.title)
-                              setEditingDescription(file.description ?? '')
-                              setEditingBgColor(file.bgColor ?? '')
-                              setEditingThumbFile(null); setEditingThumbPreview(null); setEditingRemoveThumb(false)
-                              setEditingThumbnailArtboard(file.thumbnailArtboard ?? null)
-                            }}
-                            className="opacity-0 group-hover/title:opacity-100 text-[10px] text-ink-faint hover:text-ink transition-all px-1.5 py-0.5 border border-dark-border"
-                            style={monoStyle}
+                            onClick={() => handleRename(file.id)}
+                            disabled={savingId === file.id}
+                            style={{ ...mono, fontSize: 10, color: 'var(--ink)', border: '1px solid var(--border)', padding: '6px 10px', background: 'transparent', cursor: 'pointer', letterSpacing: '0.15em', textTransform: 'uppercase' as const }}
                           >
-                            edit
+                            {savingId === file.id ? '…' : 'save'}
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', border: '1px solid var(--border)', padding: '6px 10px', background: 'transparent', cursor: 'pointer', letterSpacing: '0.15em', textTransform: 'uppercase' as const }}
+                          >
+                            esc
                           </button>
                         </div>
-                      )}
-                      {editingId !== file.id && file.description && (
-                        <p className="text-xs text-ink-dim mt-0.5 truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>{file.description}</p>
-                      )}
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] text-ink-faint truncate max-w-[160px]" style={monoStyle}>{file.originalName}</span>
-                        <span className="text-[10px] text-ink-faint" style={monoStyle}>{new Date(file.createdAt).toLocaleDateString()}</span>
+                        {/* Description */}
+                        <input
+                          value={editingDescription}
+                          onChange={(e) => setEditingDescription(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Escape') setEditingId(null) }}
+                          placeholder="Description (optional)"
+                          style={{ ...mono, width: '100%', padding: '6px 10px', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 12, outline: 'none' }}
+                        />
+                        {/* Artboard picker */}
+                        <ArtboardPicker
+                          fileUrl={file.fileUrl}
+                          value={editingThumbnailArtboard}
+                          onChange={setEditingThumbnailArtboard}
+                          monoStyle={mono}
+                        />
+                        {/* Thumbnail + bg color row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                            {(editingThumbPreview || (file.thumbnailUrl && !editingRemoveThumb)) && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={editingThumbPreview || file.thumbnailUrl!} alt="" style={{ width: 28, height: 28, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }} />
+                            )}
+                            <button type="button" onClick={() => editThumbInputRef.current?.click()}
+                              style={{ ...mono, fontSize: 10, color: 'var(--ink-dim)', background: 'transparent', border: 0, cursor: 'pointer', letterSpacing: '0.15em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {editingThumbFile ? editingThumbFile.name : (file.thumbnailUrl && !editingRemoveThumb) ? 'change thumb' : 'add thumb'}
+                            </button>
+                            {(file.thumbnailUrl || editingThumbFile) && !editingRemoveThumb && (
+                              <button type="button"
+                                onClick={() => { setEditingRemoveThumb(true); setEditingThumbFile(null); setEditingThumbPreview(null); if (editThumbInputRef.current) editThumbInputRef.current.value = '' }}
+                                style={{ ...mono, fontSize: 12, color: '#f87171', background: 'transparent', border: 0, cursor: 'pointer', flexShrink: 0 }}>
+                                ×
+                              </button>
+                            )}
+                            {editingRemoveThumb && <span style={{ ...mono, fontSize: 10, color: '#f87171', flexShrink: 0, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>will remove</span>}
+                            <input ref={editThumbInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0] || null
+                                setEditingThumbFile(f); setEditingRemoveThumb(false)
+                                if (f) { const r = new FileReader(); r.onload = ev => setEditingThumbPreview(ev.target?.result as string); r.readAsDataURL(f) }
+                                else setEditingThumbPreview(null)
+                              }} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                            <input type="color" value={editingBgColor || '#000000'}
+                              onChange={(e) => setEditingBgColor(e.target.value)}
+                              style={{ width: 24, height: 24, cursor: 'pointer', background: 'transparent', border: 0, padding: 0 }} title="Background color" />
+                            <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>{editingBgColor || '#000000'}</span>
+                          </div>
+                        </div>
                       </div>
+                    ) : (
+                      <div className="admin-title-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <h3 style={{ ...sans, fontSize: 14, color: 'var(--ink)', fontWeight: 500, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
+                          {file.title}
+                        </h3>
+                        <button
+                          className="admin-edit-btn"
+                          onClick={() => {
+                            setEditingId(file.id); setEditingTitle(file.title)
+                            setEditingDescription(file.description ?? '')
+                            setEditingBgColor(file.bgColor ?? '')
+                            setEditingThumbFile(null); setEditingThumbPreview(null); setEditingRemoveThumb(false)
+                            setEditingThumbnailArtboard(file.thumbnailArtboard ?? null)
+                          }}
+                          style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', background: 'transparent', padding: '3px 8px', border: '1px solid var(--border)', cursor: 'pointer', letterSpacing: '0.15em', textTransform: 'uppercase' as const, transition: 'all 150ms' }}
+                        >
+                          edit
+                        </button>
+                      </div>
+                    )}
+                    {editingId !== file.id && file.description && (
+                      <p style={{ ...sans, fontSize: 12, color: 'var(--ink-dim)', margin: 0, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.description}</p>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 6 }}>
+                      <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200, letterSpacing: '0.1em' }}>{file.originalName}</span>
+                      <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>{new Date(file.createdAt).toLocaleDateString()}</span>
                     </div>
-
-                    {/* Embed toggle */}
-                    <button
-                      onClick={() => handleToggleFlag(file.id, 'allowEmbed', file.allowEmbed)}
-                      className="flex-shrink-0 self-center text-[10px] px-2 py-1 border transition-colors"
-                      style={{
-                        ...monoStyle,
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        borderColor: file.allowEmbed ? 'var(--accent-line)' : 'var(--border)',
-                        color: file.allowEmbed ? 'var(--accent)' : 'var(--ink-faint)',
-                      }}
-                      title={file.allowEmbed ? 'Disable embed' : 'Enable embed'}
-                    >
-                      &lt;/&gt;
-                    </button>
-
-                    {/* Download toggle */}
-                    <button
-                      onClick={() => handleToggleFlag(file.id, 'allowDownload', file.allowDownload)}
-                      className="flex-shrink-0 self-center text-[10px] px-2 py-1 border transition-colors"
-                      style={{
-                        ...monoStyle,
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        borderColor: file.allowDownload ? 'var(--accent-line)' : 'var(--border)',
-                        color: file.allowDownload ? 'var(--accent)' : 'var(--ink-faint)',
-                      }}
-                      title={file.allowDownload ? 'Disable download' : 'Enable download'}
-                    >
-                      ↓
-                    </button>
-
-                    {/* Featured star */}
-                    <button
-                      onClick={() => handleSetFeatured(file.id, file.featured)}
-                      className="flex-shrink-0 self-center text-lg leading-none transition-all"
-                      style={{ background: 'transparent', border: 0, cursor: 'pointer', color: file.featured ? 'var(--accent)' : 'var(--ink-faint)', opacity: file.featured ? 1 : undefined }}
-                      title={file.featured ? 'Unfeature' : 'Set as featured'}
-                    >
-                      {file.featured ? '★' : '☆'}
-                    </button>
-
-                    {/* Delete */}
-                    <button
-                      onClick={() => handleDelete(file.id, file.title)}
-                      disabled={deletingId === file.id}
-                      className="flex-shrink-0 self-center opacity-0 group-hover:opacity-100 text-[10px] text-ink-faint hover:text-red-400 transition-all px-2 py-1 border border-dark-border disabled:opacity-30"
-                      style={monoStyle}
-                      title="Delete"
-                    >
-                      {deletingId === file.id ? '…' : 'del'}
-                    </button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+
+                  {/* Embed toggle */}
+                  <button
+                    onClick={() => handleToggleFlag(file.id, 'allowEmbed', file.allowEmbed)}
+                    style={{
+                      ...mono,
+                      flexShrink: 0, alignSelf: 'center',
+                      fontSize: 11, padding: '6px 10px', border: '1px solid',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      borderColor: file.allowEmbed ? 'var(--accent-line)' : 'var(--border)',
+                      color: file.allowEmbed ? 'var(--accent)' : 'var(--ink-faint)',
+                      transition: 'all 150ms',
+                      letterSpacing: '0.1em',
+                    }}
+                    title={file.allowEmbed ? 'Disable embed' : 'Enable embed'}
+                  >
+                    &lt;/&gt;
+                  </button>
+
+                  {/* Download toggle */}
+                  <button
+                    onClick={() => handleToggleFlag(file.id, 'allowDownload', file.allowDownload)}
+                    style={{
+                      ...mono,
+                      flexShrink: 0, alignSelf: 'center',
+                      fontSize: 11, padding: '6px 10px', border: '1px solid',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      borderColor: file.allowDownload ? 'var(--accent-line)' : 'var(--border)',
+                      color: file.allowDownload ? 'var(--accent)' : 'var(--ink-faint)',
+                      transition: 'all 150ms',
+                      letterSpacing: '0.1em',
+                    }}
+                    title={file.allowDownload ? 'Disable download' : 'Enable download'}
+                  >
+                    ↓
+                  </button>
+
+                  {/* Featured star */}
+                  <button
+                    onClick={() => handleSetFeatured(file.id, file.featured)}
+                    style={{
+                      flexShrink: 0, alignSelf: 'center',
+                      fontSize: 18, lineHeight: 1,
+                      background: 'transparent', border: 0, cursor: 'pointer',
+                      color: file.featured ? 'var(--accent)' : 'var(--ink-faint)',
+                      transition: 'color 150ms',
+                    }}
+                    title={file.featured ? 'Unfeature' : 'Set as featured'}
+                  >
+                    {file.featured ? '★' : '☆'}
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    className="admin-delete-btn"
+                    onClick={() => handleDelete(file.id, file.title)}
+                    disabled={deletingId === file.id}
+                    style={{
+                      ...mono,
+                      flexShrink: 0, alignSelf: 'center',
+                      fontSize: 10, padding: '6px 10px',
+                      color: 'var(--ink-faint)',
+                      background: 'transparent',
+                      border: '1px solid var(--border)',
+                      cursor: 'pointer',
+                      letterSpacing: '0.15em',
+                      textTransform: 'uppercase' as const,
+                      opacity: deletingId === file.id ? 0.3 : 1,
+                      transition: 'all 150ms',
+                    }}
+                    title="Delete"
+                  >
+                    {deletingId === file.id ? '…' : 'del'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ── Footer ── */}
+      <footer style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 36px', borderTop: '1px solid var(--border)' }}>
+        <Logo height={14} className="text-ink-faint" />
+        <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>
+          Admin · © {year} kidastudio
+        </span>
+      </footer>
+
+      <style jsx>{`
+        .admin-row:hover {
+          background: var(--bg-2);
+        }
+        .admin-edit-btn {
+          opacity: 0;
+        }
+        .admin-row:hover .admin-edit-btn,
+        .admin-title-row:hover .admin-edit-btn {
+          opacity: 1;
+        }
+        .admin-delete-btn {
+          opacity: 0;
+        }
+        .admin-row:hover .admin-delete-btn {
+          opacity: 1;
+        }
+        .admin-delete-btn:hover {
+          color: #f87171 !important;
+          border-color: rgba(248, 113, 113, 0.4) !important;
+        }
+        @media (max-width: 900px) {
+          :global(.admin-row) {
+            flex-wrap: wrap;
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function Stat({ n, label }: { n: number; label: string }) {
+  return (
+    <div>
+      <div style={{ ...serif, fontStyle: 'italic', fontSize: 40, lineHeight: 1, color: 'var(--ink)' }}>{n}</div>
+      <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 6 }}>{label}</div>
     </div>
   )
 }
