@@ -5,10 +5,12 @@ import { readAll, insertRecord, generateId } from '@/lib/blob-db'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const files = await readAll()
-    return NextResponse.json(files, {
+    const includeHidden = request.nextUrl.searchParams.get('includeHidden') === '1'
+    const visible = includeHidden ? files : files.filter((f) => !f.hidden)
+    return NextResponse.json(visible, {
       headers: { 'Cache-Control': 'no-store, max-age=0' },
     })
   } catch (err) {

@@ -4,6 +4,18 @@ import { getById, updateRecord, deleteRecord, readAll, writeAll } from '@/lib/bl
 
 export const runtime = 'nodejs'
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const { id } = params
+  const record = await getById(id)
+  if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json(record, {
+    headers: { 'Cache-Control': 'no-store, max-age=0' },
+  })
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

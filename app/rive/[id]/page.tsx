@@ -67,10 +67,9 @@ export default function RiveDetailPage() {
   const riveRef = useRef<any>(null)
 
   useEffect(() => {
-    fetch('/api/rive')
-      .then((r) => r.json())
-      .then((files: RiveFile[]) => {
-        const found = files.find((f) => f.id === id)
+    fetch(`/api/rive/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((found: RiveFile | null) => {
         if (found) setFile(found)
         setLoading(false)
       })

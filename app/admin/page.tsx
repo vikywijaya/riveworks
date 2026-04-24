@@ -71,7 +71,7 @@ export default function AdminPage() {
 
   async function fetchFiles() {
     try {
-      const res = await fetch('/api/rive')
+      const res = await fetch('/api/rive?includeHidden=1')
       if (res.ok) {
         const data = await res.json()
         setFiles(data)
