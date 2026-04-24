@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
     featured: false,
     allowEmbed: false,
     allowDownload: false,
+    hidden: false,
     createdAt: now,
     updatedAt: now,
   }

@@ -20,6 +20,7 @@ interface RiveFile {
   featured: boolean
   allowEmbed: boolean
   allowDownload: boolean
+  hidden: boolean
   createdAt: string
 }
 
@@ -54,6 +55,7 @@ export default function AdminPage() {
   const [editingRemoveThumb, setEditingRemoveThumb] = useState(false)
   const [editingThumbnailArtboard, setEditingThumbnailArtboard] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   // Upload form state
   const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file')
@@ -307,7 +309,7 @@ export default function AdminPage() {
     }
   }
 
-  async function handleToggleFlag(id: string, field: 'allowEmbed' | 'allowDownload', current: boolean) {
+  async function handleToggleFlag(id: string, field: 'allowEmbed' | 'allowDownload' | 'hidden', current: boolean) {
     const next = !current
     try {
       await fetch(`/api/rive/${id}`, {
@@ -315,7 +317,13 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: next }),
       })
-      setFiles(prev => prev.map(f => f.id === id ? { ...f, [field]: next } : f))
+      setFiles(prev => prev.map(f => {
+        if (f.id !== id) return f
+        const updated = { ...f, [field]: next }
+        // Server clears featured when hidden=true — mirror here
+        if (field === 'hidden' && next === true) updated.featured = false
+        return updated
+      }))
     } catch {
       alert('Something went wrong')
     }
@@ -332,6 +340,17 @@ export default function AdminPage() {
       setFiles(prev => prev.map(f => ({ ...f, featured: f.id === id ? next : next ? false : f.featured })))
     } catch {
       alert('Something went wrong')
+    }
+  }
+
+  async function handleCopyLink(id: string) {
+    const url = `${window.location.origin}/rive/${id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1600)
+    } catch {
+      window.prompt('Copy link:', url)
     }
   }
 
@@ -403,87 +422,40 @@ export default function AdminPage() {
         </nav>
       </header>
 
-      {/* ── Hero row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 1fr) 2fr', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ padding: '56px 48px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, ...mono, fontSize: 11, color: 'var(--accent)', letterSpacing: '0.25em', textTransform: 'uppercase' as const }}>
-            <span style={{ width: 7, height: 7, background: 'var(--accent)', borderRadius: '50%', animation: 'blink 1.4s ease-in-out infinite', display: 'inline-block' }} />
-            <span>Admin console / {year}</span>
-          </div>
-          <h1 style={{ ...serif, fontSize: 'clamp(44px, 4.5vw, 68px)', lineHeight: 0.94, letterSpacing: '-0.025em', margin: 0, color: 'var(--ink)', fontWeight: 400 }}>
-            Curate the{' '}
-            <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>works,</em>
-            <br />tune the stage.
-          </h1>
-          <p style={{ ...sans, fontSize: 14, color: 'var(--ink-dim)', lineHeight: 1.65, maxWidth: 340, margin: 0 }}>
-            Upload .riv files, wire up thumbnails and artboards, flip embed and download permissions. Changes go live immediately.
-          </p>
-          <div style={{ marginTop: 'auto', paddingTop: 28, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 22 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-              <Stat n={files.length} label="Entries" />
-              <Stat n={featuredCount} label="Featured" />
-              <Stat n={files.filter(f => f.allowEmbed).length} label="Embeddable" />
-            </div>
-
-            {/* Storage meter */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.22em', textTransform: 'uppercase' as const }}>
-                  Storage
-                </span>
-                <span style={{ ...mono, fontSize: 11, color: 'var(--ink)', letterSpacing: '0.1em' }}>
-                  {storageBytes === null ? '— / —' : `${formatBytes(storageUsedBytes)} / ${formatBytes(STORAGE_LIMIT_BYTES)}`}
-                </span>
-              </div>
-              <div style={{ width: '100%', height: 2, background: 'var(--border)', position: 'relative', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${storagePct}%`,
-                  background: storageColor,
-                  transition: 'width 400ms, background 200ms',
-                }} />
-              </div>
-              <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.15em', marginTop: 6 }}>
-                {storageBytes === null ? 'measuring…' : `${storagePct.toFixed(1)}% of 1 GB reference`}
-              </div>
-            </div>
-          </div>
+      {/* ── Storage strip ── */}
+      <div style={{ padding: '24px 36px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 36, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, ...mono, fontSize: 11, color: 'var(--accent)', letterSpacing: '0.25em', textTransform: 'uppercase' as const }}>
+          <span style={{ width: 7, height: 7, background: 'var(--accent)', borderRadius: '50%', animation: 'blink 1.4s ease-in-out infinite', display: 'inline-block' }} />
+          <span>Admin console / {year}</span>
         </div>
 
-        <div style={{ padding: '56px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 18, background: 'var(--bg-2)' }}>
-          <div style={{ ...mono, fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>
-            Latest activity
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <InlineStat n={files.length} label="Entries" />
+          <InlineStat n={featuredCount} label="Featured" />
+          <InlineStat n={files.filter(f => f.hidden).length} label="Hidden" />
+        </div>
+
+        {/* Storage meter */}
+        <div style={{ flex: 1, minWidth: 260, maxWidth: 440, marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+            <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.22em', textTransform: 'uppercase' as const }}>
+              Storage
+            </span>
+            <span style={{ ...mono, fontSize: 11, color: 'var(--ink)', letterSpacing: '0.1em' }}>
+              {storageBytes === null ? '— / —' : `${formatBytes(storageUsedBytes)} / ${formatBytes(STORAGE_LIMIT_BYTES)}`}
+            </span>
           </div>
-          {files.slice(0, 3).map((f) => (
-            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 16, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
-              <div
-                style={{
-                  width: 40, height: 40, flexShrink: 0, overflow: 'hidden',
-                  border: '1px solid var(--border)',
-                  background: f.bgColor || 'var(--bg-3)',
-                }}
-              >
-                {f.thumbnailUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={f.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ ...sans, fontSize: 13, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.title}</div>
-                <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em', marginTop: 2 }}>
-                  {new Date(f.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-              {f.featured && (
-                <span style={{ ...mono, fontSize: 10, color: 'var(--accent)', letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>Featured</span>
-              )}
-            </div>
-          ))}
-          {files.length === 0 && !loading && (
-            <p style={{ ...serif, fontSize: 22, color: 'var(--ink-dim)', margin: 0 }}>
-              Nothing uploaded <em style={{ color: 'var(--accent)' }}>yet.</em>
-            </p>
-          )}
+          <div style={{ width: '100%', height: 2, background: 'var(--border)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${storagePct}%`,
+              background: storageColor,
+              transition: 'width 400ms, background 200ms',
+            }} />
+          </div>
+          <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.15em', marginTop: 4 }}>
+            {storageBytes === null ? 'measuring…' : `${storagePct.toFixed(1)}% of 1 GB reference`}
+          </div>
         </div>
       </div>
 
@@ -868,6 +840,11 @@ export default function AdminPage() {
                         <h3 style={{ ...sans, fontSize: 14, color: 'var(--ink)', fontWeight: 500, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
                           {file.title}
                         </h3>
+                        {file.hidden && (
+                          <span style={{ ...mono, fontSize: 9, color: 'var(--ink-faint)', border: '1px solid var(--border)', padding: '2px 6px', letterSpacing: '0.2em', textTransform: 'uppercase' as const, flexShrink: 0 }}>
+                            Hidden
+                          </span>
+                        )}
                         <button
                           className="admin-edit-btn"
                           onClick={() => {
@@ -891,6 +868,62 @@ export default function AdminPage() {
                       <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>{new Date(file.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
+
+                  {/* Share link */}
+                  <button
+                    onClick={() => handleCopyLink(file.id)}
+                    style={{
+                      ...mono,
+                      flexShrink: 0, alignSelf: 'center',
+                      fontSize: 10, padding: '6px 10px', border: '1px solid',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      borderColor: copiedId === file.id ? 'var(--accent-line)' : 'var(--border)',
+                      color: copiedId === file.id ? 'var(--accent)' : 'var(--ink-faint)',
+                      transition: 'all 150ms',
+                      letterSpacing: '0.15em',
+                      textTransform: 'uppercase' as const,
+                    }}
+                    title="Copy share link"
+                  >
+                    {copiedId === file.id ? 'Copied' : 'Link'}
+                  </button>
+
+                  {/* Visibility toggle — public checkbox */}
+                  <button
+                    onClick={() => handleToggleFlag(file.id, 'hidden', file.hidden)}
+                    style={{
+                      ...mono,
+                      flexShrink: 0, alignSelf: 'center',
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      fontSize: 10, padding: '6px 10px', border: '1px solid',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      borderColor: file.hidden ? 'var(--border)' : 'var(--accent-line)',
+                      color: file.hidden ? 'var(--ink-faint)' : 'var(--accent)',
+                      transition: 'all 150ms',
+                      letterSpacing: '0.15em',
+                      textTransform: 'uppercase' as const,
+                    }}
+                    title={file.hidden ? 'Currently private — click to publish' : 'Currently public — click to make private'}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 12, height: 12,
+                        border: '1px solid currentColor',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {!file.hidden && (
+                        <svg viewBox="0 0 10 10" width="8" height="8" aria-hidden>
+                          <path d="M1.5 5.2 L4 7.7 L8.7 2.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" strokeLinejoin="miter" />
+                        </svg>
+                      )}
+                    </span>
+                    <span>Public</span>
+                  </button>
 
                   {/* Embed toggle */}
                   <button
@@ -932,15 +965,20 @@ export default function AdminPage() {
 
                   {/* Featured star */}
                   <button
-                    onClick={() => handleSetFeatured(file.id, file.featured)}
+                    onClick={() => {
+                      if (file.hidden) return alert('Un-hide first to feature this work')
+                      handleSetFeatured(file.id, file.featured)
+                    }}
                     style={{
                       flexShrink: 0, alignSelf: 'center',
                       fontSize: 18, lineHeight: 1,
-                      background: 'transparent', border: 0, cursor: 'pointer',
+                      background: 'transparent', border: 0,
+                      cursor: file.hidden ? 'not-allowed' : 'pointer',
                       color: file.featured ? 'var(--accent)' : 'var(--ink-faint)',
+                      opacity: file.hidden ? 0.4 : 1,
                       transition: 'color 150ms',
                     }}
-                    title={file.featured ? 'Unfeature' : 'Set as featured'}
+                    title={file.hidden ? 'Hidden — cannot be featured' : file.featured ? 'Unfeature' : 'Set as featured'}
                   >
                     {file.featured ? '★' : '☆'}
                   </button>
@@ -1013,11 +1051,11 @@ export default function AdminPage() {
   )
 }
 
-function Stat({ n, label }: { n: number; label: string }) {
+function InlineStat({ n, label }: { n: number; label: string }) {
   return (
-    <div>
-      <div style={{ ...serif, fontStyle: 'italic', fontSize: 40, lineHeight: 1, color: 'var(--ink)' }}>{n}</div>
-      <div style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 6 }}>{label}</div>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+      <span style={{ ...mono, fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 22, lineHeight: 1, color: 'var(--ink)' }}>{n}</span>
     </div>
   )
 }

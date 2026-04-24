@@ -7,7 +7,8 @@ import { FeaturedCard } from '@/components/FeaturedCard'
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const riveFiles = await readAll()
+  const allFiles = await readAll()
+  const riveFiles = allFiles.filter(f => !f.hidden)
 
   const year = new Date().getFullYear()
   const mono = { fontFamily: "'DM Mono', monospace" }

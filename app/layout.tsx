@@ -3,7 +3,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
 export const metadata: Metadata = {
-  title: 'Rive Works',
+  title: 'K_I D__A STUDIO 2026',
   description: 'A portfolio of Rive animations',
 }
 

@@ -10,9 +10,9 @@ export async function PATCH(
 ) {
   const { id } = params
   const body = await request.json()
-  const { title, description, thumbnailData, thumbnailName, bgColor, removeThumbnail, featured, allowEmbed, allowDownload, thumbnailArtboard } = body
+  const { title, description, thumbnailData, thumbnailName, bgColor, removeThumbnail, featured, allowEmbed, allowDownload, hidden, thumbnailArtboard } = body
 
-  if (featured === undefined && allowEmbed === undefined && allowDownload === undefined && thumbnailArtboard === undefined && !title?.trim()) {
+  if (featured === undefined && allowEmbed === undefined && allowDownload === undefined && hidden === undefined && thumbnailArtboard === undefined && !title?.trim()) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   }
 
@@ -24,6 +24,10 @@ export async function PATCH(
   if (featured !== undefined) patch.featured = featured
   if (allowEmbed !== undefined) patch.allowEmbed = allowEmbed
   if (allowDownload !== undefined) patch.allowDownload = allowDownload
+  if (hidden !== undefined) {
+    patch.hidden = hidden
+    if (hidden === true) patch.featured = false
+  }
   if (thumbnailArtboard !== undefined) patch.thumbnailArtboard = thumbnailArtboard
 
   if (title?.trim()) {

@@ -16,6 +16,7 @@ export interface RiveRecord {
   featured: boolean
   allowEmbed: boolean
   allowDownload: boolean
+  hidden: boolean
   createdAt: string
   updatedAt: string
 }
