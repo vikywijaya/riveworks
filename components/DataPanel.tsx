@@ -136,7 +136,7 @@ export function DataPanel({ data, riveRef, selectedArtboard, onArtboardChange }:
 
       {/* Artboard tabs */}
       {data.artboards.length > 1 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '10px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '10px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           {data.artboards.map((ab) => {
             const active = (selectedArtboard ?? data.artboards[0]?.name) === ab.name
             return (
@@ -221,8 +221,8 @@ function VarRow({ variable: v, overrideValue, onChange }: VarRowProps) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '9px 12px',
-      gap: 8,
+      padding: '9px 20px',
+      gap: 12,
       background: 'var(--bg)',
       border: '1px solid var(--border-dim)',
       minHeight: 38,
@@ -452,7 +452,7 @@ function CollapsibleSection({ title, count, badge, children }: {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '8px 14px',
+          padding: '8px 20px',
           cursor: 'pointer',
           userSelect: 'none',
         }}
