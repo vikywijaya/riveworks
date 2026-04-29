@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 
@@ -22,6 +23,12 @@ function LiveRive({ fileUrl, thumbnailUrl, bgColor }: { fileUrl: string; thumbna
     autoplay: true,
     layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
   })
+
+  useEffect(() => {
+    if (!rive) return
+    const stateMachine = rive.stateMachineNames?.[0]
+    if (stateMachine) rive.play(stateMachine)
+  }, [rive])
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
