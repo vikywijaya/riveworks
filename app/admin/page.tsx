@@ -14,7 +14,9 @@ interface RiveFile {
   description: string | null
   originalName: string
   fileUrl: string
+  blobPathname: string | null
   thumbnailUrl: string | null
+  thumbnailBlobPathname: string | null
   thumbnailArtboard: string | null
   bgColor: string | null
   featured: boolean
@@ -236,14 +238,18 @@ export default function AdminPage() {
     reader.readAsDataURL(selectedFile!)
   }
 
-  async function handleDelete(id: string, title: string) {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return
+  async function handleDelete(file: RiveFile) {
+    if (!confirm(`Delete "${file.title}"? This cannot be undone.`)) return
 
-    setDeletingId(id)
+    setDeletingId(file.id)
     try {
-      const res = await fetch(`/api/rive/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/rive/${file.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(file),
+      })
       if (res.ok) {
-        setFiles((prev) => prev.filter((f) => f.id !== id))
+        setFiles((prev) => prev.filter((f) => f.id !== file.id))
         fetchStorage()
       } else {
         alert('Failed to delete file')
@@ -986,7 +992,7 @@ export default function AdminPage() {
                   {/* Delete */}
                   <button
                     className="admin-delete-btn"
-                    onClick={() => handleDelete(file.id, file.title)}
+                    onClick={() => handleDelete(file)}
                     disabled={deletingId === file.id}
                     style={{
                       ...mono,

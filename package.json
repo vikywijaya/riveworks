@@ -8,8 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "@rive-app/react-canvas": "^4.13.5",
-    "@rive-app/react-webgl2": "^4.27.3",
+    "@rive-app/react-canvas": "^4.28.3",
+    "@rive-app/react-webgl2": "^4.28.3",
     "@vercel/blob": "^2.3.3",
     "jose": "^5.6.3",
     "next": "14.2.5",

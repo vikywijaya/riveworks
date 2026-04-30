@@ -3,6 +3,7 @@ import { put, del } from '@vercel/blob'
 import { getById, updateRecord, deleteRecord, readAll, writeAll } from '@/lib/blob-db'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   _request: NextRequest,
@@ -91,15 +92,31 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const { id } = params
+  let fallbackRecord: {
+    fileUrl?: string | null
+    blobPathname?: string | null
+    thumbnailUrl?: string | null
+    thumbnailBlobPathname?: string | null
+  } | null = null
+
+  try {
+    fallbackRecord = await request.json()
+  } catch {
+    fallbackRecord = null
+  }
 
   const record = await deleteRecord(id)
-  if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const deleteTarget = record ?? fallbackRecord
 
-  if (record.fileUrl && record.blobPathname) {
-    try { await del(record.fileUrl) } catch { /* ignore */ }
+  if (!deleteTarget) {
+    return NextResponse.json({ success: true, tombstoned: true })
   }
-  if (record.thumbnailUrl && record.thumbnailBlobPathname) {
-    try { await del(record.thumbnailUrl) } catch { /* ignore */ }
+
+  if (deleteTarget.fileUrl && deleteTarget.blobPathname) {
+    try { await del(deleteTarget.fileUrl) } catch { /* ignore */ }
+  }
+  if (deleteTarget.thumbnailUrl && deleteTarget.thumbnailBlobPathname) {
+    try { await del(deleteTarget.thumbnailUrl) } catch { /* ignore */ }
   }
 
   return NextResponse.json({ success: true })
