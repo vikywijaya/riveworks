@@ -45,12 +45,12 @@ export default async function HomePage() {
             <span>Motion portfolio / {year}</span>
           </div>
           <h1 style={{ ...serif, fontSize: 'clamp(48px, 5vw, 76px)', lineHeight: 0.94, letterSpacing: '-0.025em', margin: 0, color: 'var(--ink)', fontWeight: 400 }}>
-            Made to{' '}
-            <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>move,</em>
-            <br />made to be moved.
+            My Rive{' '}
+            <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>Animations</em>
+            <br />Showcase
           </h1>
           <p style={{ ...sans, fontSize: 14, color: 'var(--ink-dim)', lineHeight: 1.65, maxWidth: 320, margin: 0 }}>
-            Every piece exposes its skeleton — artboards, view-models, triggers, state machines. Poke at them. Ship the URL.
+            Every piece exposes its skeleton — artboards, view-models, triggers, state machines.
           </p>
           <div style={{ marginTop: 'auto', paddingTop: 28, borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             <Stat n={riveFiles.length} label="Works" />
